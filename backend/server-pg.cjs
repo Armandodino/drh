@@ -28,6 +28,27 @@ const sql = (query, params = []) => {
   return pool.query(pgQuery, params);
 };
 
+// Normalisation des statuts (accepte les deux formats)
+const normalizeStatut = (statut) => {
+  const statutsMap = {
+    'en_attente': 'en_attente',
+    'En attente': 'en_attente',
+    'En_attente': 'en_attente',
+    'approuve': 'approuve',
+    'Approuvé': 'approuve',
+    'Approuve': 'approuve',
+    'en_cours': 'en_cours',
+    'En cours': 'en_cours',
+    'termine': 'termine',
+    'Terminé': 'termine',
+    'refuse': 'refuse',
+    'Refusé': 'refuse',
+    'annule': 'annule',
+    'Annulé': 'annule'
+  };
+  return statutsMap[statut] || statut;
+};
+
 const app = express();
 app.use(express.json());
 app.use(cors());
@@ -95,10 +116,10 @@ app.get('/api/employes/:id/solde', auth, async (req, res) => {
       joursAcquis = anneesAnciennete * 30;
     }
 
-    // Jours pris dans le système
+    // Jours pris dans le système (format approuve)
     const { rows: congesRows } = await sql(
-      'SELECT COALESCE(SUM(nombre_jours), 0) as total FROM conges WHERE employe_id = ? AND statut = ?',
-      [req.params.id, 'Approuvé']
+      "SELECT COALESCE(SUM(nombre_jours), 0) as total FROM conges WHERE employe_id = ? AND statut IN ('approuve', 'Approuvé')",
+      [req.params.id]
     );
     const joursPrisSysteme = parseInt(congesRows[0]?.total || 0);
     const joursPrisHistorique = emp.jours_pris_historique || 0;
@@ -143,7 +164,7 @@ app.post('/api/agents', auth, async (req, res) => {
   try {
     const { rows } = await sql(`
       INSERT INTO employes (matricule, nom, prenoms, sexe, direction, fonction, telephone, email, date_embauche, jours_pris_historique, statut, role)
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'Actif', 'AGENT')
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'actif', 'AGENT')
       RETURNING id
     `, [matricule?.toLowerCase(), nom, prenoms, sexe || 'M', direction, fonction, telephone || '', email || '', date_embauche || null, jours_pris_historique || 0]);
 
@@ -164,7 +185,7 @@ app.put('/api/agents/:id', auth, async (req, res) => {
       SET nom = ?, prenoms = ?, sexe = ?, direction = ?, fonction = ?, 
           telephone = ?, email = ?, date_embauche = ?, jours_pris_historique = ?, statut = ?
       WHERE id = ?
-    `, [nom, prenoms, sexe, direction, fonction, telephone, email, date_embauche, jours_pris_historique || 0, statut, req.params.id]);
+    `, [nom, prenoms, sexe, direction, fonction, telephone, email, date_embauche, jours_pris_historique || 0, statut?.toLowerCase() || 'actif', req.params.id]);
 
     res.json({ message: "Agent mis à jour" });
   } catch (err) {
@@ -222,7 +243,7 @@ app.post('/api/verify-password', auth, async (req, res) => {
 app.get('/api/conges', auth, async (req, res) => {
   try {
     const { rows } = await sql(`
-      SELECT c.*, e.nom, e.prenoms, e.matricule, e.direction
+      SELECT c.*, e.nom, e.prenoms, e.matricule, e.direction, e.fonction
       FROM conges c
       JOIN employes e ON c.employe_id = e.id
       ORDER BY c.created_at DESC
@@ -237,7 +258,6 @@ app.get('/api/conges', auth, async (req, res) => {
 app.post('/api/conges', auth, async (req, res) => {
   const { employe_id, date_depart, date_retour, type, motif, nombre_jours } = req.body;
 
-  // Vérifier le solde
   try {
     const { rows: soldeRows } = await sql('SELECT * FROM employes WHERE id = ?', [employe_id]);
     const emp = soldeRows[0];
@@ -249,8 +269,8 @@ app.post('/api/conges', auth, async (req, res) => {
       const acquis = annees * 30;
       
       const { rows: prisRows } = await sql(
-        'SELECT COALESCE(SUM(nombre_jours), 0) as total FROM conges WHERE employe_id = ? AND statut = ?',
-        [employe_id, 'Approuvé']
+        "SELECT COALESCE(SUM(nombre_jours), 0) as total FROM conges WHERE employe_id = ? AND statut IN ('approuve', 'Approuvé')",
+        [employe_id]
       );
       const prisSysteme = parseInt(prisRows[0]?.total || 0);
       const solde = acquis - prisSysteme - (emp.jours_pris_historique || 0);
@@ -260,14 +280,18 @@ app.post('/api/conges', auth, async (req, res) => {
       }
     }
 
+    // Année du congé
+    const anneeConge = new Date(date_depart).getFullYear();
+
     const { rows } = await sql(`
-      INSERT INTO conges (employe_id, date_depart, date_retour, nombre_jours, type, statut, motif)
-      VALUES (?, ?, ?, ?, ?, 'En attente', ?)
+      INSERT INTO conges (employe_id, date_depart, date_retour, nombre_jours, type, statut, motif, annee_conge)
+      VALUES (?, ?, ?, ?, ?, 'en_attente', ?, ?)
       RETURNING id
-    `, [employe_id, date_depart, date_retour, nombre_jours, type, motif || '']);
+    `, [employe_id, date_depart, date_retour, nombre_jours, type?.toLowerCase() || 'annuel', motif || '', anneeConge]);
 
     res.json({ id: rows[0].id, message: "Demande de congé enregistrée" });
   } catch (err) {
+    console.error(err);
     res.status(500).json({ error: err.message });
   }
 });
@@ -275,8 +299,20 @@ app.post('/api/conges', auth, async (req, res) => {
 // Modifier statut congé
 app.put('/api/conges/:id', auth, async (req, res) => {
   const { statut } = req.body;
+  const normalizedStatut = normalizeStatut(statut);
+  
   try {
-    await sql('UPDATE conges SET statut = ? WHERE id = ?', [statut, req.params.id]);
+    // Si approbation, enregistrer qui a approuvé et quand
+    if (normalizedStatut === 'approuve') {
+      await sql(`
+        UPDATE conges 
+        SET statut = ?, date_approbation = CURRENT_TIMESTAMP, approuve_par = ?
+        WHERE id = ?
+      `, [normalizedStatut, req.user.id, req.params.id]);
+    } else {
+      await sql('UPDATE conges SET statut = ? WHERE id = ?', [normalizedStatut, req.params.id]);
+    }
+    
     res.json({ message: "Statut mis à jour" });
   } catch (err) {
     res.status(500).json({ error: err.message });
@@ -319,9 +355,10 @@ app.get('/api/agents/:id/historique-conges', auth, async (req, res) => {
 // ============ DASHBOARD ============
 app.get('/api/dashboard', auth, async (req, res) => {
   try {
-    const { rows: agentsCount } = await sql('SELECT COUNT(*) as total FROM employes WHERE role NOT IN (?, ?)', ['DEV', 'ADMIN_DRH']);
-    const { rows: congesEnAttente } = await sql('SELECT COUNT(*) as total FROM conges WHERE statut = ?', ['En attente']);
-    const { rows: congesApprouves } = await sql('SELECT COUNT(*) as total FROM conges WHERE statut = ?', ['Approuvé']);
+    const { rows: agentsCount } = await sql("SELECT COUNT(*) as total FROM employes WHERE role NOT IN ('DEV', 'ADMIN_DRH')");
+    const { rows: congesEnAttente } = await sql("SELECT COUNT(*) as total FROM conges WHERE statut IN ('en_attente', 'En attente')");
+    const { rows: congesApprouves } = await sql("SELECT COUNT(*) as total FROM conges WHERE statut IN ('approuve', 'Approuvé')");
+    const { rows: congesEnCours } = await sql("SELECT COUNT(*) as total FROM conges WHERE statut = 'en_cours'");
     const { rows: congesRecents } = await sql(`
       SELECT c.*, e.nom, e.prenoms, e.direction 
       FROM conges c 
@@ -333,8 +370,46 @@ app.get('/api/dashboard', auth, async (req, res) => {
       total_agents: parseInt(agentsCount[0]?.total || 0),
       conges_en_attente: parseInt(congesEnAttente[0]?.total || 0),
       conges_approuves: parseInt(congesApprouves[0]?.total || 0),
+      conges_en_cours: parseInt(congesEnCours[0]?.total || 0),
       conges_recents: congesRecents
     });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// ============ PARAMÈTRES ============
+app.get('/api/parametres', auth, async (req, res) => {
+  try {
+    const { rows } = await sql('SELECT * FROM parametres ORDER BY cle');
+    res.json(rows);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// ============ ACTUALITÉS ============
+app.get('/api/actualites', auth, async (req, res) => {
+  try {
+    const { rows } = await sql('SELECT * FROM actualites ORDER BY date_publication DESC LIMIT 10');
+    res.json(rows);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// ============ RAPPELS ============
+app.get('/api/rappels', auth, async (req, res) => {
+  try {
+    const { rows } = await sql(`
+      SELECT r.*, e.nom, e.prenoms, e.matricule
+      FROM rappels r
+      JOIN conges c ON r.conge_id = c.id
+      JOIN employes e ON c.employe_id = e.id
+      WHERE r.est_envoye = FALSE AND r.date_rappel <= CURRENT_DATE
+      ORDER BY r.date_rappel ASC
+    `);
+    res.json(rows);
   } catch (err) {
     res.status(500).json({ error: err.message });
   }

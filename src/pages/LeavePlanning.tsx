@@ -141,7 +141,7 @@ export function LeavePlanning() {
         const yearsWorked = new Date().getFullYear() - hireYear + 1;
         const totalEntitled = yearsWorked * (agent.jours_conge_annuel || 30);
         const used = conges
-            .filter(c => c.employe_id === agent.id && c.statut === 'Approuvé')
+            .filter(c => c.employe_id === agent.id && c.statut?.toLowerCase().includes('approuve'))
             .reduce((sum, c) => sum + (c.nombre_jours || 0), 0);
         const historique = agent.jours_pris_historique || 0;
         return Math.max(0, totalEntitled - used - historique);
@@ -149,17 +149,28 @@ export function LeavePlanning() {
 
     // Stats calculation
     const soldeGlobal = agents.reduce((acc, agent) => acc + getSolde(agent), 0);
-    const demandesAttente = conges.filter(c => c.statut === 'En attente');
-    const congesApprouves = conges.filter(c => c.statut === 'Approuvé');
+    const demandesAttente = conges.filter(c => c.statut?.toLowerCase().includes('attente'));
+    const congesApprouves = conges.filter(c => c.statut?.toLowerCase().includes('approuve'));
 
     const getStatusBadge = (statut: string) => {
-        switch (statut) {
-            case 'En attente':
+        const normalizedStatut = statut?.toLowerCase().replace('_', ' ');
+        switch (normalizedStatut) {
+            case 'en attente':
                 return <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-bold bg-amber-100 text-amber-700"><Clock size={12}/> En attente</span>;
-            case 'Approuvé':
+            case 'approuve':
+            case 'approuvé':
                 return <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-bold bg-emerald-100 text-emerald-700"><CheckCircle size={12}/> Approuvé</span>;
-            case 'Annulé':
+            case 'annule':
+            case 'annulé':
                 return <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-bold bg-red-100 text-red-700"><XCircle size={12}/> Annulé</span>;
+            case 'en cours':
+                return <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-bold bg-blue-100 text-blue-700"><Clock size={12}/> En cours</span>;
+            case 'termine':
+            case 'terminé':
+                return <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-bold bg-slate-100 text-slate-700"><CheckCircle size={12}/> Terminé</span>;
+            case 'refuse':
+            case 'refusé':
+                return <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-bold bg-red-100 text-red-700"><XCircle size={12}/> Refusé</span>;
             default:
                 return <span className="px-2.5 py-1 rounded-full text-xs font-bold bg-slate-100 text-slate-600">{statut}</span>;
         }
@@ -425,7 +436,7 @@ export function LeavePlanning() {
                                             </td>
                                             <td className="px-5 py-3">
                                                 <div className="flex items-center justify-center gap-2">
-                                                    {conge.statut === 'En attente' && (
+                                                    {conge.statut?.toLowerCase().includes('attente') && (
                                                         <>
                                                             <button
                                                                 onClick={() => handleConfirmConge(conge)}
@@ -443,7 +454,7 @@ export function LeavePlanning() {
                                                             </button>
                                                         </>
                                                     )}
-                                                    {conge.statut === 'Approuvé' && (
+                                                    {conge.statut?.toLowerCase().includes('approuve') && (
                                                         <button
                                                             onClick={() => handleGenerateArrete(conge)}
                                                             className="p-2 rounded-lg bg-blue-100 text-blue-600 hover:bg-blue-200 transition-colors"
