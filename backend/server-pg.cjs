@@ -172,6 +172,52 @@ app.put('/api/agents/:id', auth, async (req, res) => {
   }
 });
 
+// Supprimer un agent (avec vérification mot de passe admin)
+app.delete('/api/agents/:id', auth, async (req, res) => {
+  const { password } = req.body;
+  
+  try {
+    // Vérifier le mot de passe de l'admin connecté
+    const { rows: adminRows } = await sql('SELECT password FROM employes WHERE id = ?', [req.user.id]);
+    const admin = adminRows[0];
+    
+    if (!admin || !admin.password) {
+      return res.status(401).json({ message: "Session invalide" });
+    }
+    
+    const valid = await bcrypt.compare(password, admin.password);
+    if (!valid) {
+      return res.status(403).json({ message: "Mot de passe incorrect" });
+    }
+
+    // Supprimer l'agent
+    await sql('DELETE FROM employes WHERE id = ?', [req.params.id]);
+    res.json({ message: "Agent supprimé avec succès" });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// Vérifier mot de passe admin pour actions sensibles
+app.post('/api/verify-password', auth, async (req, res) => {
+  const { password } = req.body;
+  
+  try {
+    const { rows } = await sql('SELECT password FROM employes WHERE id = ?', [req.user.id]);
+    const user = rows[0];
+    
+    if (!user || !user.password) {
+      return res.status(401).json({ valid: false });
+    }
+    
+    const valid = await bcrypt.compare(password, user.password);
+    res.json({ valid });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
 // ============ CONGÉS ============
 app.get('/api/conges', auth, async (req, res) => {
   try {

@@ -1,9 +1,8 @@
 import { useState, useEffect } from 'react';
 import { toast } from 'sonner';
-import { motion } from 'framer-motion';
-import { Search, UserPlus, Calendar, Clock, TrendingUp, Users, Building2, UserCheck } from 'lucide-react';
+import { motion, AnimatePresence } from 'framer-motion';
+import { Search, UserPlus, Calendar, Clock, TrendingUp, Users, Building2, UserCheck, Edit2, Trash2, AlertTriangle } from 'lucide-react';
 import api from '../services/api';
-import { DIRECTIONS } from '../constants/directions';
 import { AgentForm } from '../components/AgentForm';
 
 export function Employees() {
@@ -12,7 +11,22 @@ export function Employees() {
     const [search, setSearch] = useState('');
     const [showModal, setShowModal] = useState(false);
     const [selectedAgent, setSelectedAgent] = useState<any>(null);
-    const [viewMode, setViewMode] = useState<'grid' | 'list'>('list');
+    const [editMode, setEditMode] = useState(false);
+    const [showDeleteModal, setShowDeleteModal] = useState(false);
+    const [agentToDelete, setAgentToDelete] = useState<any>(null);
+    const [password, setPassword] = useState('');
+    const [editForm, setEditForm] = useState({
+        nom: '',
+        prenoms: '',
+        sexe: 'M',
+        direction: '',
+        fonction: '',
+        telephone: '',
+        email: '',
+        date_embauche: '',
+        jours_pris_historique: 0,
+        statut: 'actif'
+    });
 
     const fetchAgents = async () => {
         try {
@@ -34,6 +48,57 @@ export function Employees() {
         agent.matricule.toLowerCase().includes(search.toLowerCase()) ||
         agent.direction?.toLowerCase().includes(search.toLowerCase())
     );
+
+    const handleEditAgent = (agent: any) => {
+        setSelectedAgent(agent);
+        setEditForm({
+            nom: agent.nom || '',
+            prenoms: agent.prenoms || '',
+            sexe: agent.sexe || 'M',
+            direction: agent.direction || '',
+            fonction: agent.fonction || '',
+            telephone: agent.telephone || '',
+            email: agent.email || '',
+            date_embauche: agent.date_embauche ? agent.date_embauche.split('T')[0] : '',
+            jours_pris_historique: agent.jours_pris_historique || 0,
+            statut: agent.statut || 'actif'
+        });
+        setEditMode(true);
+    };
+
+    const handleSaveEdit = async () => {
+        if (!selectedAgent) return;
+        
+        try {
+            await api.updateAgent(selectedAgent.id, editForm);
+            toast.success("Agent modifié avec succès !");
+            setEditMode(false);
+            setSelectedAgent(null);
+            fetchAgents();
+        } catch (err: any) {
+            toast.error(err.message || "Erreur lors de la modification");
+        }
+    };
+
+    const handleDeleteClick = (agent: any) => {
+        setAgentToDelete(agent);
+        setShowDeleteModal(true);
+        setPassword('');
+    };
+
+    const handleConfirmDelete = async () => {
+        if (!agentToDelete) return;
+        
+        try {
+            await api.deleteAgent(agentToDelete.id, password);
+            toast.success("Agent supprimé avec succès !");
+            setShowDeleteModal(false);
+            setAgentToDelete(null);
+            fetchAgents();
+        } catch (err: any) {
+            toast.error(err.message || "Mot de passe incorrect ou erreur");
+        }
+    };
 
     // Stats
     const totalAgents = agents.length;
@@ -149,12 +214,13 @@ export function Employees() {
                                         </div>
                                     </th>
                                     <th className="px-5 py-3 text-center text-xs font-bold text-slate-500 uppercase">Statut</th>
+                                    <th className="px-5 py-3 text-center text-xs font-bold text-slate-500 uppercase">Actions</th>
                                 </tr>
                             </thead>
                             <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
                                 {filteredAgents.length === 0 ? (
                                     <tr>
-                                        <td colSpan={6} className="px-5 py-8 text-center text-slate-400">
+                                        <td colSpan={7} className="px-5 py-8 text-center text-slate-400">
                                             Aucun agent trouvé
                                         </td>
                                     </tr>
@@ -191,6 +257,7 @@ export function Employees() {
                                             </td>
                                             <td className="px-5 py-3 text-sm text-slate-500">
                                                 <p>{agent.telephone || '-'}</p>
+                                                <p className="text-xs">{agent.email || ''}</p>
                                             </td>
                                             <td className="px-5 py-3 text-center">
                                                 {agent.date_embauche ? (
@@ -221,6 +288,24 @@ export function Employees() {
                                                     {agent.statut || 'Actif'}
                                                 </span>
                                             </td>
+                                            <td className="px-5 py-3">
+                                                <div className="flex items-center justify-center gap-2">
+                                                    <button
+                                                        onClick={() => handleEditAgent(agent)}
+                                                        className="p-2 rounded-lg bg-blue-100 text-blue-600 hover:bg-blue-200 transition-colors"
+                                                        title="Modifier"
+                                                    >
+                                                        <Edit2 size={16} />
+                                                    </button>
+                                                    <button
+                                                        onClick={() => handleDeleteClick(agent)}
+                                                        className="p-2 rounded-lg bg-red-100 text-red-600 hover:bg-red-200 transition-colors"
+                                                        title="Supprimer"
+                                                    >
+                                                        <Trash2 size={16} />
+                                                    </button>
+                                                </div>
+                                            </td>
                                         </tr>
                                     );
                                 })}
@@ -233,12 +318,206 @@ export function Employees() {
                 </div>
             </div>
 
-            {/* Modal Formulaire */}
+            {/* Modal Formulaire Nouvel Agent */}
             <AgentForm
                 isOpen={showModal}
                 onClose={() => setShowModal(false)}
                 onSuccess={fetchAgents}
             />
+
+            {/* Modal Modification Agent */}
+            <AnimatePresence>
+                {editMode && selectedAgent && (
+                    <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+                        <motion.div
+                            initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+                            className="absolute inset-0 bg-slate-900/60 backdrop-blur-sm"
+                            onClick={() => setEditMode(false)}
+                        />
+                        <motion.div
+                            initial={{ scale: 0.95, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} exit={{ scale: 0.95, opacity: 0 }}
+                            className="relative bg-white dark:bg-slate-900 rounded-2xl w-full max-w-2xl max-h-[90vh] overflow-y-auto p-6 shadow-2xl border border-slate-200 dark:border-slate-800"
+                        >
+                            <h3 className="text-lg font-bold mb-4 text-slate-900 dark:text-white flex items-center gap-2">
+                                <Edit2 size={20} className="text-blue-600" />
+                                Modifier l'Agent
+                            </h3>
+
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                <div>
+                                    <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Nom</label>
+                                    <input
+                                        value={editForm.nom}
+                                        onChange={e => setEditForm({...editForm, nom: e.target.value})}
+                                        className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl px-4 py-2.5"
+                                    />
+                                </div>
+                                <div>
+                                    <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Prénoms</label>
+                                    <input
+                                        value={editForm.prenoms}
+                                        onChange={e => setEditForm({...editForm, prenoms: e.target.value})}
+                                        className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl px-4 py-2.5"
+                                    />
+                                </div>
+                                <div>
+                                    <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Sexe</label>
+                                    <select
+                                        value={editForm.sexe}
+                                        onChange={e => setEditForm({...editForm, sexe: e.target.value})}
+                                        className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl px-4 py-2.5"
+                                    >
+                                        <option value="M">Masculin</option>
+                                        <option value="F">Féminin</option>
+                                    </select>
+                                </div>
+                                <div>
+                                    <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Direction</label>
+                                    <input
+                                        value={editForm.direction}
+                                        onChange={e => setEditForm({...editForm, direction: e.target.value})}
+                                        className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl px-4 py-2.5"
+                                    />
+                                </div>
+                                <div>
+                                    <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Fonction</label>
+                                    <input
+                                        value={editForm.fonction}
+                                        onChange={e => setEditForm({...editForm, fonction: e.target.value})}
+                                        className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl px-4 py-2.5"
+                                    />
+                                </div>
+                                <div>
+                                    <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Téléphone</label>
+                                    <input
+                                        value={editForm.telephone}
+                                        onChange={e => setEditForm({...editForm, telephone: e.target.value})}
+                                        className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl px-4 py-2.5"
+                                    />
+                                </div>
+                                <div>
+                                    <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Email</label>
+                                    <input
+                                        type="email"
+                                        value={editForm.email}
+                                        onChange={e => setEditForm({...editForm, email: e.target.value})}
+                                        className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl px-4 py-2.5"
+                                    />
+                                </div>
+                                <div>
+                                    <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Date d'embauche</label>
+                                    <input
+                                        type="date"
+                                        value={editForm.date_embauche}
+                                        onChange={e => setEditForm({...editForm, date_embauche: e.target.value})}
+                                        className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl px-4 py-2.5"
+                                    />
+                                </div>
+                                <div>
+                                    <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Jours pris (avant système)</label>
+                                    <input
+                                        type="number"
+                                        value={editForm.jours_pris_historique}
+                                        onChange={e => setEditForm({...editForm, jours_pris_historique: parseInt(e.target.value) || 0})}
+                                        className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl px-4 py-2.5"
+                                    />
+                                </div>
+                                <div>
+                                    <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Statut</label>
+                                    <select
+                                        value={editForm.statut}
+                                        onChange={e => setEditForm({...editForm, statut: e.target.value})}
+                                        className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl px-4 py-2.5"
+                                    >
+                                        <option value="actif">Actif</option>
+                                        <option value="inactif">Inactif</option>
+                                        <option value="retraite">Retraité</option>
+                                    </select>
+                                </div>
+                            </div>
+
+                            <div className="mt-6 flex justify-end gap-3">
+                                <button 
+                                    onClick={() => setEditMode(false)}
+                                    className="px-4 py-2 text-sm font-bold text-slate-600 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-xl transition-colors"
+                                >
+                                    Annuler
+                                </button>
+                                <button 
+                                    onClick={handleSaveEdit}
+                                    className="px-4 py-2 text-sm font-bold text-white bg-emerald-600 hover:bg-emerald-700 rounded-xl transition-colors"
+                                >
+                                    Enregistrer
+                                </button>
+                            </div>
+                        </motion.div>
+                    </div>
+                )}
+            </AnimatePresence>
+
+            {/* Modal Suppression Agent */}
+            <AnimatePresence>
+                {showDeleteModal && agentToDelete && (
+                    <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+                        <motion.div
+                            initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+                            className="absolute inset-0 bg-slate-900/60 backdrop-blur-sm"
+                            onClick={() => { setShowDeleteModal(false); setAgentToDelete(null); }}
+                        />
+                        <motion.div
+                            initial={{ scale: 0.95, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} exit={{ scale: 0.95, opacity: 0 }}
+                            className="relative bg-white dark:bg-slate-900 rounded-2xl w-full max-w-md p-6 shadow-2xl border border-slate-200 dark:border-slate-800"
+                        >
+                            <div className="flex items-center gap-3 mb-4">
+                                <div className="w-12 h-12 rounded-full bg-red-100 flex items-center justify-center">
+                                    <AlertTriangle size={24} className="text-red-600" />
+                                </div>
+                                <div>
+                                    <h3 className="text-lg font-bold text-slate-900 dark:text-white">Supprimer l'agent</h3>
+                                    <p className="text-sm text-slate-500">Cette action est irréversible</p>
+                                </div>
+                            </div>
+
+                            <div className="bg-red-50 dark:bg-red-900/20 p-3 rounded-xl mb-4">
+                                <p className="font-semibold text-slate-800 dark:text-white">
+                                    {agentToDelete.nom} {agentToDelete.prenoms}
+                                </p>
+                                <p className="text-sm text-slate-500">
+                                    {agentToDelete.matricule} - {agentToDelete.direction}
+                                </p>
+                            </div>
+
+                            <p className="text-sm text-slate-600 dark:text-slate-400 mb-4">
+                                Entrez votre mot de passe pour confirmer la suppression :
+                            </p>
+
+                            <input
+                                type="password"
+                                value={password}
+                                onChange={e => setPassword(e.target.value)}
+                                placeholder="Mot de passe"
+                                className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl px-4 py-2.5 focus:ring-2 focus:ring-red-500 mb-4"
+                                autoFocus
+                            />
+
+                            <div className="flex justify-end gap-3">
+                                <button 
+                                    onClick={() => { setShowDeleteModal(false); setAgentToDelete(null); }}
+                                    className="px-4 py-2 text-sm font-bold text-slate-600 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-xl transition-colors"
+                                >
+                                    Annuler
+                                </button>
+                                <button 
+                                    onClick={handleConfirmDelete}
+                                    className="px-4 py-2 text-sm font-bold text-white bg-red-600 hover:bg-red-700 rounded-xl transition-colors"
+                                >
+                                    Supprimer
+                                </button>
+                            </div>
+                        </motion.div>
+                    </div>
+                )}
+            </AnimatePresence>
         </>
     );
 }

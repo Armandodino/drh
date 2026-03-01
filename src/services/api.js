@@ -67,8 +67,14 @@ const api = {
     body: JSON.stringify(data)
   }),
 
-  deleteAgent: (id) => fetchWithAuth(`/agents/${id}`, {
-    method: 'DELETE'
+  deleteAgent: (id, password) => fetchWithAuth(`/agents/${id}`, {
+    method: 'DELETE',
+    body: JSON.stringify({ password })
+  }),
+
+  verifyPassword: (password) => fetchWithAuth('/verify-password', {
+    method: 'POST',
+    body: JSON.stringify({ password })
   }),
 
   // Solde congés d'un agent
