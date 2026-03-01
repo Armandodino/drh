@@ -4,7 +4,7 @@ Application de gestion des ressources humaines pour la **Commune de Yopougon** (
 
 ![React](https://img.shields.io/badge/React-19-61DAFB?logo=react)
 ![Node.js](https://img.shields.io/badge/Node.js-18+-339933?logo=node.js)
-![SQLite](https://img.shields.io/badge/SQLite-3-003B57?logo=sqlite)
+![PostgreSQL](https://img.shields.io/badge/PostgreSQL-Supabase-336791?logo=postgresql)
 ![Tailwind CSS](https://img.shields.io/badge/Tailwind-4-38B2AC?logo=tailwindcss)
 
 ---
@@ -24,52 +24,72 @@ Application de gestion des ressources humaines pour la **Commune de Yopougon** (
 
 | Frontend | Backend | Base de données |
 |----------|---------|-----------------|
-| React 19 | Node.js + Express 5 | SQLite |
-| TypeScript | JWT + bcrypt | sqlite3 |
+| React 19 | Node.js + Express 5 | PostgreSQL (Supabase) |
+| TypeScript | JWT + bcrypt | 500MB gratuit |
 | Tailwind CSS 4 | CORS | |
 | Recharts | | |
 | Framer Motion | | |
 
 ---
 
-## 🚀 Déploiement sur Render (Gratuit)
+## 🚀 Déploiement (Render + Supabase)
 
-### Étape 1 : Créer un compte Render
+### Étape 1 : Créer un projet Supabase
+
+1. Allez sur [supabase.com](https://supabase.com)
+2. Cliquez sur **"Start your project"**
+3. Créez un compte et une organisation
+4. Créez un **nouveau projet** :
+   - **Name** : `drh-yopougon`
+   - **Database password** : (générez un mot de passe fort)
+   - **Region** : `West Europe (Frankfurt)` ou le plus proche
+5. Attendez ~2 minutes que le projet soit prêt
+
+### Étape 2 : Récupérer les infos de connexion
+
+1. Dans Supabase, allez dans **Settings** → **Database**
+2. Copiez l'**URI de connexion** (format : `postgresql://postgres:[PASSWORD]@db.xxx.supabase.co:5432/postgres`)
+3. Remplacez `[PASSWORD]` par votre mot de passe de base de données
+
+### Étape 3 : Créer les tables
+
+1. Dans Supabase, allez dans **SQL Editor**
+2. Créez une nouvelle requête
+3. Copiez-collez le contenu du fichier `backend/schema.sql`
+4. Cliquez sur **Run** pour exécuter
+
+### Étape 4 : Déployer sur Render
+
 1. Allez sur [render.com](https://render.com)
-2. Cliquez sur **"Get Started"** et créez un compte
-3. Vous pouvez utiliser votre compte GitHub pour vous inscrire
-
-### Étape 2 : Connecter le repository
-1. Sur Render, cliquez sur **"New +"** → **"Web Service"**
-2. Connectez votre compte GitHub
-3. Sélectionnez le repository `drh`
-
-### Étape 3 : Configurer le service
-Remplissez les champs :
+2. Cliquez sur **"New +"** → **" Web Service"**
+3. Connectez votre GitHub et sélectionnez le repository `drh`
+4. Configurez :
 
 | Champ | Valeur |
 |-------|--------|
 | **Name** | `drh-yopougon` |
-| **Region** | `Frankfurt` (ou le plus proche) |
+| **Region** | `Frankfurt` |
 | **Branch** | `main` |
-| **Root Directory** | (laisser vide) |
 | **Runtime** | `Node` |
 | **Build Command** | `npm install && npm run build` |
 | **Start Command** | `npm start` |
 | **Plan** | `Free` |
 
-### Étape 4 : Ajouter les variables d'environnement
-Cliquez sur **"Advanced"** → **"Add Environment Variable"** :
+### Étape 5 : Configurer les variables d'environnement
+
+Dans Render, allez dans **Environment** et ajoutez :
 
 | Key | Value |
 |-----|-------|
 | `NODE_ENV` | `production` |
-| `JWT_SECRET` | (cliquez sur "Generate" pour créer une clé secrète) |
+| `JWT_SECRET` | *(cliquez "Generate")* |
+| `DATABASE_URL` | *(votre URI Supabase)* |
 
-### Étape 5 : Déployer
+### Étape 6 : Déployer
+
 1. Cliquez sur **"Create Web Service"**
-2. Attendez le build (environ 2-3 minutes)
-3. Votre app sera disponible sur `https://drh-yopougon.onrender.com`
+2. Attendez ~3 minutes
+3. 🎉 Votre app est sur : `https://drh-yopougon.onrender.com`
 
 ---
 
@@ -80,6 +100,7 @@ Cliquez sur **"Advanced"** → **"Add Environment Variable"** :
 - npm ou bun
 
 ### Installation
+
 ```bash
 # Cloner le repository
 git clone https://github.com/Armandodino/drh.git
@@ -88,7 +109,7 @@ cd drh
 # Installer les dépendances
 npm install
 
-# Initialiser la base de données et créer les comptes
+# Initialiser la base SQLite locale
 npm run seed
 
 # Lancer en développement (frontend + backend)
@@ -99,7 +120,28 @@ L'application sera accessible sur :
 - **Frontend** : http://localhost:5173
 - **Backend** : http://localhost:5000
 
-### Comptes de test
+### Utiliser Supabase en local
+
+Créez un fichier `.env` à la racine :
+
+```env
+DATABASE_URL=postgresql://postgres:VOTRE_MDP@db.xxx.supabase.co:5432/postgres
+NODE_ENV=production
+```
+
+Puis lancez :
+
+```bash
+# Créer les tables et comptes
+node backend/seed-supabase.js
+
+# Démarrer le serveur
+npm start
+```
+
+---
+
+## 📋 Comptes de test
 
 | Matricule | Mot de passe | Rôle |
 |-----------|--------------|------|
@@ -116,34 +158,48 @@ drh/
 │   ├── components/         # Composants réutilisables
 │   ├── pages/              # Pages de l'application
 │   ├── services/           # Services API et exports
-│   ├── constants/          # Constantes (directions, etc.)
-│   └── index.css           # Styles Tailwind
+│   └── constants/          # Constantes
 ├── backend/                # Backend Node.js
-│   ├── server.js           # Serveur Express
-│   ├── database.js         # Configuration SQLite
-│   └── seed.js             # Initialisation des données
+│   ├── server-supabase.js  # Serveur PostgreSQL (production)
+│   ├── server.js           # Serveur SQLite (développement)
+│   ├── database-supabase.js# Config PostgreSQL
+│   ├── database.js         # Config SQLite
+│   ├── schema.sql          # Schéma SQL Supabase
+│   └── seed.js             # Données initiales
 ├── public/                 # Assets statiques
 ├── render.yaml             # Configuration Render
-├── vite.config.ts          # Configuration Vite
-└── package.json            # Dépendances et scripts
+└── package.json            # Dépendances
 ```
 
 ---
 
-## ⚠️ Notes Importantes
+## 🔧 Scripts disponibles
 
-### Persistance des données
-Sur le plan gratuit de Render, la base SQLite est **éphémère** : les données sont perdues à chaque redémarrage du serveur.
+| Commande | Description |
+|----------|-------------|
+| `npm run dev` | Lance le frontend Vite |
+| `npm run dev:all` | Lance frontend + backend (SQLite) |
+| `npm run build` | Build pour production |
+| `npm start` | Lance le serveur production (PostgreSQL) |
+| `npm run seed` | Initialise SQLite locale |
 
-Pour une utilisation en production, il est recommandé de migrer vers une base de données persistante comme :
-- **Supabase** (PostgreSQL gratuit - 500MB)
-- **PlanetScale** (MySQL gratuit)
-- **MongoDB Atlas** (MongoDB gratuit - 512MB)
+---
 
-### Limites du plan gratuit Render
-- 750 heures/mois
-- Le service se met en "sleep" après 15 min d'inactivité
-- Premier démarrage lent (~30 sec) après mise en veille
+## ⚠️ Notes importantes
+
+### SQLite vs PostgreSQL
+
+- **Développement** : SQLite (fichier local)
+- **Production** : PostgreSQL via Supabase
+
+Le fichier `server-supabase.js` détecte automatiquement l'environnement et utilise la bonne base.
+
+### Limites du plan gratuit
+
+| Service | Limite |
+|---------|--------|
+| Render | 750h/mois, sleep après 15 min d'inactivité |
+| Supabase | 500MB base de données, 1GB stockage fichiers |
 
 ---
 

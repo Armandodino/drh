@@ -12,7 +12,8 @@
     "build:backend": "echo 'Backend ready'",
     "lint": "eslint .",
     "preview": "vite preview",
-    "start": "node backend/server.js",
+    "start": "node backend/server-supabase.js",
+    "start:dev": "node backend/server.js",
     "seed": "node backend/seed.js"
   },
   "dependencies": {
@@ -23,10 +24,11 @@
     "express": "^5.2.1",
     "framer-motion": "^12.34.3",
     "html2canvas": "^1.4.1",
-    "jspdf": "^4.2.0",
     "jsonwebtoken": "^9.0.3",
+    "jspdf": "^4.2.0",
     "jwt-decode": "^4.0.0",
     "lucide-react": "^0.575.0",
+    "pg": "^8.19.0",
     "react": "^19.2.0",
     "react-dom": "^19.2.0",
     "react-router-dom": "^7.13.1",
