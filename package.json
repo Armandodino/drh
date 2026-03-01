@@ -5,16 +5,14 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
-    "dev:server": "node backend/server.js",
+    "dev:server": "node backend/server.cjs",
     "dev:all": "concurrently \"npm run dev\" \"npm run dev:server\"",
-    "build": "npm run build:frontend && npm run build:backend",
+    "build": "npm run build:frontend",
     "build:frontend": "vite build",
-    "build:backend": "echo 'Backend ready'",
     "lint": "eslint .",
     "preview": "vite preview",
-    "start": "node backend/server-supabase.js",
-    "start:dev": "node backend/server.js",
-    "seed": "node backend/seed.js"
+    "start": "node backend/server.cjs",
+    "seed": "node backend/seed-sqlite.cjs"
   },
   "dependencies": {
     "axios": "^1.13.6",

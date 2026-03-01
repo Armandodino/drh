@@ -4,12 +4,10 @@ services:
     env: node
     region: frankfurt
     plan: free
-    buildCommand: npm install && npm run build
+    buildCommand: npm install && npm run build && npm run seed
     startCommand: npm start
     envVars:
       - key: NODE_ENV
         value: production
       - key: JWT_SECRET
         generateValue: true
-      - key: DATABASE_URL
-        sync: false  # Vous devrez ajouter cette variable manuellement depuis Supabase
