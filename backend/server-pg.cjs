@@ -55,6 +55,24 @@ app.use(cors());
 
 const JWT_SECRET = process.env.JWT_SECRET || 'DRH_YOP_SECRET_2026';
 
+// ============ HEALTH CHECK ============
+app.get('/api/health', async (req, res) => {
+  try {
+    const { rows } = await pool.query('SELECT NOW()');
+    res.json({ 
+      status: 'ok', 
+      database: 'connected',
+      timestamp: rows[0].now 
+    });
+  } catch (err) {
+    res.status(500).json({ 
+      status: 'error', 
+      database: 'disconnected',
+      error: err.message 
+    });
+  }
+});
+
 // Auth middleware
 const auth = (req, res, next) => {
   const token = req.headers['authorization']?.split(' ')[1];
