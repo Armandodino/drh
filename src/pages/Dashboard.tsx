@@ -8,8 +8,11 @@ import { exportStatsExcel, exportStatsPDF, exportAgentsExcel, exportCongesExcel 
 
 const COLORS = ['#10b981', '#3b82f6', '#f59e0b', '#8b5cf6', '#ef4444', '#06b6d4', '#ec4899', '#71717a', '#a855f7', '#14b8a6', '#f97316'];
 
+// Helper pour normaliser les statuts
+const normalizeStatut = (statut: string) => statut?.toLowerCase().replace('_', ' ').replace('é', 'e');
+
 export function Dashboard() {
-    const [stats, setStats] = useState({ total_agents: 0, actifs: 0, urgents: 0, solde_total: 0 });
+    const [stats, setStats] = useState({ total_agents: 0, actifs: 0, urgents: 0, solde_total: 0, en_cours: 0 });
     const [recentLeaves, setRecentLeaves] = useState<any[]>([]);
     const [chartData, setChartData] = useState<any[]>([]);
     const [trendData, setTrendData] = useState<any[]>([]);
@@ -22,19 +25,37 @@ export function Dashboard() {
             try {
                 const agentsData = await api.getAgents();
                 const congesData = await api.getConges();
-                setAllAgents(agentsData);
+                
+                // Filtrer les agents (exclure admin/dev)
+                const agents = agentsData.filter((a: any) => a.role === 'AGENT');
+                setAllAgents(agents);
                 setAllConges(congesData);
 
+                // Calculer le solde total
+                const soldeTotal = agents.reduce((acc: number, agent: any) => {
+                    if (!agent.date_embauche) return acc;
+                    const embauche = new Date(agent.date_embauche);
+                    const today = new Date();
+                    const annees = Math.floor((today.getTime() - embauche.getTime()) / (365.25 * 24 * 60 * 60 * 1000));
+                    const acquis = annees * 30;
+                    const pris = congesData
+                        .filter((c: any) => c.employe_id === agent.id && normalizeStatut(c.statut).includes('approuve'))
+                        .reduce((sum: number, c: any) => sum + (c.nombre_jours || 0), 0);
+                    const historique = agent.jours_pris_historique || 0;
+                    return acc + Math.max(0, acquis - pris - historique);
+                }, 0);
+
                 setStats({
-                    total_agents: agentsData.length,
-                    actifs: congesData.filter((c: any) => c.statut === 'Approuvé').length,
-                    urgents: congesData.filter((c: any) => c.statut === 'En attente').length,
-                    solde_total: agentsData.reduce((acc: number, agent: any) => acc + (agent.jours_conge_annuel || 0), 0)
+                    total_agents: agents.length,
+                    actifs: congesData.filter((c: any) => normalizeStatut(c.statut).includes('approuve')).length,
+                    urgents: congesData.filter((c: any) => normalizeStatut(c.statut).includes('attente')).length,
+                    en_cours: congesData.filter((c: any) => normalizeStatut(c.statut).includes('cours')).length,
+                    solde_total: soldeTotal
                 });
 
                 // PieChart: Répartition par Direction
                 const directionCounts: Record<string, number> = {};
-                agentsData.forEach((a: any) => {
+                agents.forEach((a: any) => {
                     const dir = a.direction || 'Autres';
                     directionCounts[dir] = (directionCounts[dir] || 0) + 1;
                 });
@@ -43,7 +64,8 @@ export function Dashboard() {
                 // AreaChart: Tendance des Congés par Type
                 const typeCounts: Record<string, number> = {};
                 congesData.forEach((c: any) => {
-                    typeCounts[c.type] = (typeCounts[c.type] || 0) + 1;
+                    const type = c.type?.charAt(0).toUpperCase() + c.type?.slice(1) || 'Annuel';
+                    typeCounts[type] = (typeCounts[type] || 0) + 1;
                 });
                 setTrendData(Object.entries(typeCounts).map(([name, count]) => ({ name, count })));
 
@@ -62,6 +84,26 @@ export function Dashboard() {
         };
         fetchDashboardData();
     }, []);
+
+    const getStatusBadge = (statut: string) => {
+        const normalized = normalizeStatut(statut);
+        if (normalized.includes('attente')) {
+            return <span className="px-2.5 py-1 rounded-lg text-[9px] font-black uppercase tracking-tight bg-amber-100 text-amber-700">En attente</span>;
+        }
+        if (normalized.includes('approuve')) {
+            return <span className="px-2.5 py-1 rounded-lg text-[9px] font-black uppercase tracking-tight bg-emerald-100 text-emerald-700">Approuvé</span>;
+        }
+        if (normalized.includes('cours')) {
+            return <span className="px-2.5 py-1 rounded-lg text-[9px] font-black uppercase tracking-tight bg-blue-100 text-blue-700">En cours</span>;
+        }
+        if (normalized.includes('termine')) {
+            return <span className="px-2.5 py-1 rounded-lg text-[9px] font-black uppercase tracking-tight bg-slate-100 text-slate-700">Terminé</span>;
+        }
+        if (normalized.includes('annule') || normalized.includes('refuse')) {
+            return <span className="px-2.5 py-1 rounded-lg text-[9px] font-black uppercase tracking-tight bg-red-100 text-red-700">Annulé</span>;
+        }
+        return <span className="px-2.5 py-1 rounded-lg text-[9px] font-black uppercase tracking-tight bg-slate-100 text-slate-600">{statut}</span>;
+    };
 
     return (
         <div className="max-w-7xl mx-auto w-full">
@@ -133,9 +175,9 @@ export function Dashboard() {
                                 <div className="size-12 rounded-xl bg-blue-100 text-blue-600 flex items-center justify-center">
                                     <span className="material-symbols-outlined text-3xl">flight_takeoff</span>
                                 </div>
-                                <span className="text-blue-500 text-[10px] font-black tracking-tighter uppercase bg-blue-50 px-2.5 py-1 rounded-full border border-blue-100 italic">En Cours</span>
+                                <span className="text-blue-500 text-[10px] font-black tracking-tighter uppercase bg-blue-50 px-2.5 py-1 rounded-full border border-blue-100 italic">Approuvés</span>
                             </div>
-                            <p className="text-slate-500 text-xs font-bold uppercase tracking-wider">Agents en Congé</p>
+                            <p className="text-slate-500 text-xs font-bold uppercase tracking-wider">Congés Approuvés</p>
                             <h3 className="text-3xl font-black text-slate-900 dark:text-white mt-1">{stats.actifs}</h3>
                         </div>
 
@@ -242,7 +284,7 @@ export function Dashboard() {
                                         <th className="px-6 py-4">Employé</th>
                                         <th className="px-6 py-4">Type / Motif</th>
                                         <th className="px-6 py-4">Durée</th>
-                                        <th className="px-6 py-4 text-right">Statut / Action</th>
+                                        <th className="px-6 py-4 text-right">Statut</th>
                                     </tr>
                                 </thead>
                                 <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
@@ -256,53 +298,29 @@ export function Dashboard() {
                                         <tr key={conge.id} className="hover:bg-slate-50/50 dark:hover:bg-slate-800/30 transition-colors">
                                             <td className="px-6 py-4">
                                                 <div className="flex items-center gap-3">
-                                                    <div className="size-9 rounded-full bg-slate-900 text-white flex items-center justify-center font-black text-xs uppercase">
-                                                        {conge.agent ? `${conge.agent.nom.charAt(0)}${conge.agent.prenoms.charAt(0)}` : '?'}
+                                                    <div className="size-9 rounded-full bg-gradient-to-br from-emerald-500 to-teal-500 text-white flex items-center justify-center font-black text-xs uppercase">
+                                                        {conge.agent ? `${conge.agent.nom?.charAt(0)}${conge.agent.prenoms?.charAt(0)}` : '?'}
                                                     </div>
                                                     <div>
                                                         <p className="text-sm font-bold text-slate-900 dark:text-white">
                                                             {conge.agent ? `${conge.agent.nom} ${conge.agent.prenoms}` : 'Agent inconnu'}
                                                         </p>
-                                                        <p className="text-[10px] text-slate-400 font-bold uppercase">{conge.agent?.direction || 'N/A'}</p>
+                                                        <p className="text-[10px] text-slate-400 font-bold uppercase">{conge.agent?.direction || conge.direction || 'N/A'}</p>
                                                     </div>
                                                 </div>
                                             </td>
                                             <td className="px-6 py-4">
-                                                <p className="text-sm font-semibold text-slate-700 dark:text-slate-300">{conge.type}</p>
+                                                <p className="text-sm font-semibold text-slate-700 dark:text-slate-300">{conge.type || 'Annuel'}</p>
                                                 <p className="text-[10px] text-slate-400">{conge.motif || 'Sans motif'}</p>
                                             </td>
                                             <td className="px-6 py-4 text-sm text-slate-500 font-bold italic uppercase">
                                                 {conge.nombre_jours} j
                                                 <span className="block text-[10px] font-normal text-slate-400 not-italic normal-case">
-                                                    {conge.date_depart} → {conge.date_retour}
+                                                    {new Date(conge.date_depart).toLocaleDateString('fr-FR')} → {new Date(conge.date_retour).toLocaleDateString('fr-FR')}
                                                 </span>
                                             </td>
                                             <td className="px-6 py-4 text-right">
-                                                <div className="flex flex-col items-end gap-2">
-                                                    <span className={`px-2.5 py-1 rounded-lg text-[9px] font-black uppercase tracking-tight ${conge.statut === 'Approuvé'
-                                                        ? 'bg-emerald-100 text-emerald-700'
-                                                        : conge.statut === 'En attente'
-                                                            ? 'bg-orange-100 text-orange-700'
-                                                            : 'bg-slate-100 text-slate-600'
-                                                        }`}>
-                                                        {conge.statut}
-                                                    </span>
-                                                    {conge.statut === 'En attente' && (
-                                                        <button
-                                                            onClick={async () => {
-                                                                try {
-                                                                    await api.updateCongeStatus(conge.id, 'Approuvé');
-                                                                    window.location.reload();
-                                                                } catch (err) {
-                                                                    console.error(err);
-                                                                }
-                                                            }}
-                                                            className="text-[9px] font-black uppercase tracking-widest text-white bg-emerald-600 hover:bg-emerald-700 px-3 py-1 rounded-md transition-all"
-                                                        >
-                                                            Approuver
-                                                        </button>
-                                                    )}
-                                                </div>
+                                                {getStatusBadge(conge.statut)}
                                             </td>
                                         </tr>
                                     ))}

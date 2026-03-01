@@ -7,6 +7,7 @@ import { AgentForm } from '../components/AgentForm';
 
 export function Employees() {
     const [agents, setAgents] = useState<any[]>([]);
+    const [conges, setConges] = useState<any[]>([]);
     const [loading, setLoading] = useState(true);
     const [search, setSearch] = useState('');
     const [showModal, setShowModal] = useState(false);
@@ -39,8 +40,18 @@ export function Employees() {
         }
     };
 
+    const fetchConges = async () => {
+        try {
+            const data = await api.getConges();
+            setConges(data);
+        } catch (err) {
+            console.error("Erreur lors de la récupération des congés", err);
+        }
+    };
+
     useEffect(() => {
         fetchAgents();
+        fetchConges();
     }, []);
 
     const filteredAgents = agents.filter(agent =>
@@ -109,6 +120,20 @@ export function Employees() {
         const years = Math.floor((Date.now() - new Date(a.date_embauche).getTime()) / (365.25 * 24 * 60 * 60 * 1000));
         return sum + years;
     }, 0) / (agents.filter(a => a.date_embauche).length || 1);
+
+    // Calcul du solde pour un agent
+    const getSoldeAgent = (agent: any) => {
+        if (!agent.date_embauche) return 0;
+        const embauche = new Date(agent.date_embauche);
+        const today = new Date();
+        const annees = Math.floor((today.getTime() - embauche.getTime()) / (365.25 * 24 * 60 * 60 * 1000));
+        const acquis = annees * 30;
+        const pris = conges
+            .filter((c: any) => c.employe_id === agent.id && c.statut?.toLowerCase().includes('approuve'))
+            .reduce((sum: number, c: any) => sum + (c.nombre_jours || 0), 0);
+        const historique = agent.jours_pris_historique || 0;
+        return Math.max(0, acquis - pris - historique);
+    };
 
     return (
         <>
@@ -227,14 +252,11 @@ export function Employees() {
                                 ) : filteredAgents.map(agent => {
                                     // Calcul ancienneté
                                     let anciennete = 0;
-                                    let joursAcquis = 0;
                                     if (agent.date_embauche) {
                                         const embauche = new Date(agent.date_embauche);
                                         anciennete = Math.floor((Date.now() - embauche.getTime()) / (365.25 * 24 * 60 * 60 * 1000));
-                                        joursAcquis = anciennete * 30;
                                     }
-                                    const joursPris = agent.jours_pris_historique || 0;
-                                    const solde = Math.max(0, joursAcquis - joursPris);
+                                    const solde = getSoldeAgent(agent);
 
                                     return (
                                         <tr key={agent.id} className="hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors">
