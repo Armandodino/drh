@@ -4,17 +4,46 @@
  */
 
 const { Pool } = require('pg');
+const dns = require('dns');
+
+// Forcer IPv4 pour éviter les problèmes de connexion IPv6
+dns.setDefaultResultOrder('ipv4first');
 
 // Configuration de la connexion PostgreSQL
 const pool = new Pool({
   connectionString: process.env.DATABASE_URL,
-  ssl: process.env.NODE_ENV === 'production' ? { rejectUnauthorized: false } : false
+  ssl: process.env.NODE_ENV === 'production' ? { rejectUnauthorized: false } : false,
+  // Forcer IPv4
+  family: 4,
+  // Timeouts
+  connectionTimeoutMillis: 10000,
+  query_timeout: 30000,
 });
 
-// Test de connexion
-pool.connect()
-  .then(() => console.log('✅ Base de données PostgreSQL (Supabase) connectée avec succès !'))
-  .catch(err => console.error('❌ Erreur de connexion PostgreSQL:', err.message));
+// Gestion des erreurs de connexion
+pool.on('error', (err) => {
+  console.error('❌ Erreur inattendue du pool PostgreSQL:', err.message);
+});
+
+// Test de connexion avec retry
+const testConnection = async (retries = 3) => {
+  for (let i = 0; i < retries; i++) {
+    try {
+      const client = await pool.connect();
+      console.log('✅ Base de données PostgreSQL (Supabase) connectée avec succès !');
+      client.release();
+      return true;
+    } catch (err) {
+      console.error(`❌ Tentative ${i + 1}/${retries} - Erreur de connexion:`, err.message);
+      if (i < retries - 1) {
+        await new Promise(resolve => setTimeout(resolve, 2000));
+      }
+    }
+  }
+  return false;
+};
+
+testConnection();
 
 // Wrapper pour les requêtes style SQLite
 const db = {
