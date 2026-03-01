@@ -41,9 +41,9 @@ export const Login = ({ onLogin }: LoginProps) => {
 
       {/* ── Panneau gauche : Image de fond ── */}
       <div className="hidden lg:flex lg:w-3/5 relative">
-        {/* Image */}
+        {/* Image de fond */}
         <img
-          src="/mairie_yopougon.jpg"
+          src="/login-bg.png"
           alt="Mairie de Yopougon"
           className="absolute inset-0 w-full h-full object-cover"
         />
