@@ -39,120 +39,125 @@ export const Login = ({ onLogin }: LoginProps) => {
 
   return (
     <div className="min-h-screen flex items-center justify-center w-full relative overflow-hidden">
-      {/* Background */}
+      {/* Background Image */}
       <div className="absolute inset-0">
         <img
           src="/login-bg.png"
           alt="Background"
-          className="w-full h-full object-cover"
+          className="w-full h-full object-cover scale-110"
         />
-        <div className="absolute inset-0 bg-slate-900/70" />
+        <div className="absolute inset-0 bg-slate-900/50" />
       </div>
 
-      {/* Login Card */}
+      {/* Glass Card */}
       <motion.div
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.5 }}
-        className="relative z-10 w-full max-w-sm mx-4"
+        initial={{ opacity: 0, y: 20, scale: 0.98 }}
+        animate={{ opacity: 1, y: 0, scale: 1 }}
+        transition={{ duration: 0.4 }}
+        className="relative z-10 w-full max-w-xs mx-4"
       >
-        {/* Glass effect container */}
-        <div className="bg-white/95 backdrop-blur-xl rounded-2xl shadow-2xl border border-white/50 overflow-hidden">
-          {/* Top accent bar */}
-          <div className="h-1 bg-gradient-to-r from-orange-500 via-white to-emerald-500" />
+        {/* Glass Container */}
+        <div className="relative">
+          {/* Glow behind */}
+          <div className="absolute -inset-1 bg-gradient-to-r from-orange-500/20 via-white/10 to-emerald-500/20 rounded-2xl blur-xl" />
 
-          {/* Content */}
-          <div className="p-6">
-            {/* Logo */}
-            <div className="flex flex-col items-center mb-5">
-              <div className="w-16 h-16 bg-white rounded-xl shadow-lg flex items-center justify-center mb-3 border border-slate-100">
-                <img
-                  src="/logo.png"
-                  alt="Logo"
-                  className="w-12 h-12 object-contain"
-                />
-              </div>
-              <h1 className="text-xl font-bold text-slate-800">
-                DRH <span className="text-emerald-600">Yopougon</span>
-              </h1>
-              <p className="text-slate-500 text-xs mt-0.5">Mairie de Yopougon</p>
-            </div>
+          {/* Main glass card */}
+          <div className="relative bg-white/10 backdrop-blur-2xl rounded-2xl border border-white/20 shadow-2xl overflow-hidden">
+            {/* Top accent */}
+            <div className="h-1 bg-gradient-to-r from-orange-500 via-white to-emerald-500" />
 
-            {/* Form */}
-            <form onSubmit={handleSubmit} className="space-y-4">
-              {/* Matricule */}
-              <div>
-                <label className="block text-xs font-semibold text-slate-600 mb-1.5">
-                  Matricule
-                </label>
-                <input
-                  type="text"
-                  value={id}
-                  onChange={(e) => setId(e.target.value)}
-                  className="w-full bg-slate-50 border border-slate-200 rounded-lg px-4 py-2.5 text-slate-800 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-transparent transition-all text-sm"
-                  placeholder="Ex: drh001"
-                  required
-                />
+            <div className="p-5">
+              {/* Logo */}
+              <div className="flex flex-col items-center mb-4">
+                <div className="w-14 h-14 bg-white/20 backdrop-blur rounded-xl flex items-center justify-center mb-2 border border-white/30 shadow-lg">
+                  <img
+                    src="/logo.png"
+                    alt="Logo"
+                    className="w-10 h-10 object-contain"
+                  />
+                </div>
+                <h1 className="text-lg font-bold text-white">
+                  DRH <span className="text-emerald-400">Yopougon</span>
+                </h1>
+                <p className="text-white/50 text-[10px]">Mairie de Yopougon</p>
               </div>
 
-              {/* Password */}
-              <div>
-                <label className="block text-xs font-semibold text-slate-600 mb-1.5">
-                  Mot de passe
-                </label>
-                <div className="relative">
+              {/* Form */}
+              <form onSubmit={handleSubmit} className="space-y-3">
+                {/* Matricule */}
+                <div>
+                  <label className="block text-[10px] font-semibold text-white/70 mb-1 uppercase tracking-wider">
+                    Matricule
+                  </label>
                   <input
-                    type={showPassword ? "text" : "password"}
-                    value={password}
-                    onChange={(e) => setPassword(e.target.value)}
-                    className="w-full bg-slate-50 border border-slate-200 rounded-lg px-4 py-2.5 pr-10 text-slate-800 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-transparent transition-all text-sm"
-                    placeholder="••••••••"
+                    type="text"
+                    value={id}
+                    onChange={(e) => setId(e.target.value)}
+                    className="w-full bg-white/10 backdrop-blur border border-white/20 rounded-lg px-3 py-2 text-white placeholder-white/40 focus:outline-none focus:border-white/40 focus:bg-white/15 transition-all text-sm"
+                    placeholder="drh001"
                     required
                   />
-                  <button
-                    type="button"
-                    onClick={() => setShowPassword(!showPassword)}
-                    className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 transition-colors"
-                  >
-                    {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
-                  </button>
                 </div>
+
+                {/* Password */}
+                <div>
+                  <label className="block text-[10px] font-semibold text-white/70 mb-1 uppercase tracking-wider">
+                    Mot de passe
+                  </label>
+                  <div className="relative">
+                    <input
+                      type={showPassword ? "text" : "password"}
+                      value={password}
+                      onChange={(e) => setPassword(e.target.value)}
+                      className="w-full bg-white/10 backdrop-blur border border-white/20 rounded-lg px-3 py-2 pr-9 text-white placeholder-white/40 focus:outline-none focus:border-white/40 focus:bg-white/15 transition-all text-sm"
+                      placeholder="••••••••"
+                      required
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setShowPassword(!showPassword)}
+                      className="absolute right-2.5 top-1/2 -translate-y-1/2 text-white/40 hover:text-white/70 transition-colors"
+                    >
+                      {showPassword ? <EyeOff size={14} /> : <Eye size={14} />}
+                    </button>
+                  </div>
+                </div>
+
+                {/* Submit */}
+                <button
+                  type="submit"
+                  disabled={loading}
+                  className="w-full py-2.5 mt-3 bg-gradient-to-r from-orange-500 to-emerald-500 text-white rounded-lg font-semibold text-sm flex items-center justify-center gap-2 hover:opacity-90 transition-all disabled:opacity-50 shadow-lg shadow-emerald-500/20"
+                >
+                  {loading ? (
+                    <>
+                      <svg className="animate-spin w-4 h-4" viewBox="0 0 24 24" fill="none">
+                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+                      </svg>
+                      Connexion...
+                    </>
+                  ) : (
+                    <>
+                      <LogIn size={14} />
+                      Se connecter
+                    </>
+                  )}
+                </button>
+              </form>
+
+              {/* Footer */}
+              <div className="mt-4 pt-3 border-t border-white/10 text-center">
+                <p className="text-white/40 text-[10px]">
+                  Accès restreint au personnel autorisé
+                </p>
               </div>
-
-              {/* Submit Button */}
-              <button
-                type="submit"
-                disabled={loading}
-                className="w-full py-2.5 mt-2 bg-gradient-to-r from-orange-500 to-emerald-500 text-white rounded-lg font-semibold text-sm flex items-center justify-center gap-2 hover:opacity-90 transition-all disabled:opacity-60 shadow-lg"
-              >
-                {loading ? (
-                  <>
-                    <svg className="animate-spin w-4 h-4" viewBox="0 0 24 24" fill="none">
-                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
-                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
-                    </svg>
-                    Connexion...
-                  </>
-                ) : (
-                  <>
-                    <LogIn size={16} />
-                    Se connecter
-                  </>
-                )}
-              </button>
-            </form>
-
-            {/* Footer */}
-            <div className="mt-5 pt-4 border-t border-slate-100 text-center">
-              <p className="text-slate-400 text-xs">
-                Accès restreint au personnel autorisé
-              </p>
             </div>
           </div>
         </div>
 
         {/* Copyright */}
-        <p className="text-center text-white/60 text-xs mt-4">
+        <p className="text-center text-white/40 text-[10px] mt-3">
           © {new Date().getFullYear()} Commune de Yopougon
         </p>
       </motion.div>
