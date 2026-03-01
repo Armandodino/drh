@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { toast } from 'sonner';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Search, UserPlus, Calendar, Clock, TrendingUp, Users, Building2, UserCheck, Edit2, Trash2, AlertTriangle } from 'lucide-react';
+import { Search, UserPlus, Calendar, Clock, TrendingUp, Users, Building2, UserCheck, Edit2, Trash2, AlertTriangle, Settings } from 'lucide-react';
 import api from '../services/api';
 import { AgentForm } from '../components/AgentForm';
 
@@ -16,6 +16,14 @@ export function Employees() {
     const [showDeleteModal, setShowDeleteModal] = useState(false);
     const [agentToDelete, setAgentToDelete] = useState<any>(null);
     const [password, setPassword] = useState('');
+    
+    // État pour le modal de solde
+    const [showSoldeModal, setShowSoldeModal] = useState(false);
+    const [agentSolde, setAgentSolde] = useState<any>(null);
+    const [newJoursPris, setNewJoursPris] = useState(0);
+    const [soldePassword, setSoldePassword] = useState('');
+    const [soldeLoading, setSoldeLoading] = useState(false);
+    
     const [editForm, setEditForm] = useState({
         nom: '',
         prenoms: '',
@@ -111,6 +119,62 @@ export function Employees() {
         }
     };
 
+    // Ouvrir le modal de solde
+    const handleOpenSoldeModal = (agent: any) => {
+        setAgentSolde(agent);
+        setNewJoursPris(agent.jours_pris_historique || 0);
+        setSoldePassword('');
+        setShowSoldeModal(true);
+    };
+
+    // Calculer les détails du solde
+    const getSoldeDetails = (agent: any) => {
+        if (!agent.date_embauche) {
+            return { annees: 0, acquis: 0, prisSysteme: 0, prisHistorique: agent.jours_pris_historique || 0, solde: 0 };
+        }
+        const embauche = new Date(agent.date_embauche);
+        const today = new Date();
+        const annees = Math.floor((today.getTime() - embauche.getTime()) / (365.25 * 24 * 60 * 60 * 1000));
+        const acquis = annees * 30;
+        const prisSysteme = conges
+            .filter((c: any) => c.employe_id === agent.id && c.statut?.toLowerCase().includes('approuve'))
+            .reduce((sum: number, c: any) => sum + (c.nombre_jours || 0), 0);
+        const prisHistorique = agent.jours_pris_historique || 0;
+        const solde = Math.max(0, acquis - prisSysteme - prisHistorique);
+        return { annees, acquis, prisSysteme, prisHistorique, solde };
+    };
+
+    // Sauvegarder le nouveau solde
+    const handleSaveSolde = async () => {
+        if (!agentSolde) return;
+        setSoldeLoading(true);
+
+        try {
+            // Vérifier le mot de passe
+            const result = await api.verifyPassword(soldePassword);
+            if (!result.valid) {
+                toast.error("Mot de passe incorrect");
+                setSoldeLoading(false);
+                return;
+            }
+
+            // Mettre à jour l'agent
+            await api.updateAgent(agentSolde.id, {
+                ...agentSolde,
+                jours_pris_historique: newJoursPris
+            });
+
+            toast.success("Solde de congés mis à jour !");
+            setShowSoldeModal(false);
+            setAgentSolde(null);
+            fetchAgents();
+        } catch (err: any) {
+            toast.error(err.message || "Erreur lors de la mise à jour");
+        } finally {
+            setSoldeLoading(false);
+        }
+    };
+
     // Stats
     const totalAgents = agents.length;
     const actifs = agents.filter(a => a.statut?.toLowerCase() === 'actif').length;
@@ -123,16 +187,8 @@ export function Employees() {
 
     // Calcul du solde pour un agent
     const getSoldeAgent = (agent: any) => {
-        if (!agent.date_embauche) return 0;
-        const embauche = new Date(agent.date_embauche);
-        const today = new Date();
-        const annees = Math.floor((today.getTime() - embauche.getTime()) / (365.25 * 24 * 60 * 60 * 1000));
-        const acquis = annees * 30;
-        const pris = conges
-            .filter((c: any) => c.employe_id === agent.id && c.statut?.toLowerCase().includes('approuve'))
-            .reduce((sum: number, c: any) => sum + (c.nombre_jours || 0), 0);
-        const historique = agent.jours_pris_historique || 0;
-        return Math.max(0, acquis - pris - historique);
+        const details = getSoldeDetails(agent);
+        return details.solde;
     };
 
     return (
@@ -311,7 +367,14 @@ export function Employees() {
                                                 </span>
                                             </td>
                                             <td className="px-5 py-3">
-                                                <div className="flex items-center justify-center gap-2">
+                                                <div className="flex items-center justify-center gap-1.5">
+                                                    <button
+                                                        onClick={() => handleOpenSoldeModal(agent)}
+                                                        className="p-2 rounded-lg bg-amber-100 text-amber-600 hover:bg-amber-200 transition-colors"
+                                                        title="Ajuster le solde de congés"
+                                                    >
+                                                        <Settings size={16} />
+                                                    </button>
                                                     <button
                                                         onClick={() => handleEditAgent(agent)}
                                                         className="p-2 rounded-lg bg-blue-100 text-blue-600 hover:bg-blue-200 transition-colors"
@@ -346,6 +409,122 @@ export function Employees() {
                 onClose={() => setShowModal(false)}
                 onSuccess={fetchAgents}
             />
+
+            {/* Modal Ajustement Solde de Congés */}
+            <AnimatePresence>
+                {showSoldeModal && agentSolde && (
+                    <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+                        <motion.div
+                            initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+                            className="absolute inset-0 bg-slate-900/60 backdrop-blur-sm"
+                            onClick={() => { setShowSoldeModal(false); setAgentSolde(null); }}
+                        />
+                        <motion.div
+                            initial={{ scale: 0.95, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} exit={{ scale: 0.95, opacity: 0 }}
+                            className="relative bg-white dark:bg-slate-900 rounded-2xl w-full max-w-md p-6 shadow-2xl border border-slate-200 dark:border-slate-800"
+                        >
+                            <div className="flex items-center gap-3 mb-4">
+                                <div className="w-12 h-12 rounded-full bg-amber-100 flex items-center justify-center">
+                                    <Settings size={24} className="text-amber-600" />
+                                </div>
+                                <div>
+                                    <h3 className="text-lg font-bold text-slate-900 dark:text-white">Ajuster le Solde</h3>
+                                    <p className="text-sm text-slate-500">Congés pris avant le système</p>
+                                </div>
+                            </div>
+
+                            {/* Info Agent */}
+                            <div className="bg-gradient-to-r from-emerald-50 to-teal-50 dark:from-emerald-900/20 dark:to-teal-900/20 p-4 rounded-xl mb-4 border border-emerald-200 dark:border-emerald-800">
+                                <p className="font-bold text-slate-800 dark:text-white">
+                                    {agentSolde.nom} {agentSolde.prenoms}
+                                </p>
+                                <p className="text-sm text-slate-500">
+                                    {agentSolde.matricule} • {agentSolde.direction}
+                                </p>
+                            </div>
+
+                            {/* Détails du calcul */}
+                            {(() => {
+                                const details = getSoldeDetails(agentSolde);
+                                return (
+                                    <div className="bg-slate-50 dark:bg-slate-800 rounded-xl p-4 mb-4 space-y-2">
+                                        <div className="flex justify-between text-sm">
+                                            <span className="text-slate-500">Ancienneté</span>
+                                            <span className="font-bold text-slate-700 dark:text-slate-300">{details.annees} an(s)</span>
+                                        </div>
+                                        <div className="flex justify-between text-sm">
+                                            <span className="text-slate-500">Jours acquis (30j/an)</span>
+                                            <span className="font-bold text-emerald-600">{details.acquis} jours</span>
+                                        </div>
+                                        <div className="flex justify-between text-sm">
+                                            <span className="text-slate-500">Jours pris (système)</span>
+                                            <span className="font-bold text-blue-600">{details.prisSysteme} jours</span>
+                                        </div>
+                                        <div className="flex justify-between text-sm">
+                                            <span className="text-slate-500">Jours pris (avant système)</span>
+                                            <span className="font-bold text-amber-600">{details.prisHistorique} jours</span>
+                                        </div>
+                                        <div className="border-t border-slate-200 dark:border-slate-700 pt-2 mt-2">
+                                            <div className="flex justify-between text-sm">
+                                                <span className="font-bold text-slate-700 dark:text-slate-300">Solde actuel</span>
+                                                <span className="font-bold text-lg text-emerald-600">{details.solde} jours</span>
+                                            </div>
+                                        </div>
+                                    </div>
+                                );
+                            })()}
+
+                            {/* Champ de modification */}
+                            <div className="mb-4">
+                                <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
+                                    Jours pris avant le système
+                                </label>
+                                <input
+                                    type="number"
+                                    value={newJoursPris}
+                                    onChange={e => setNewJoursPris(parseInt(e.target.value) || 0)}
+                                    className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl px-4 py-3 text-lg font-bold text-center focus:ring-2 focus:ring-amber-500"
+                                    min="0"
+                                />
+                                <p className="text-xs text-slate-400 mt-1">
+                                    Nouveau solde: <span className="font-bold text-emerald-600">{Math.max(0, (getSoldeDetails(agentSolde).acquis - getSoldeDetails(agentSolde).prisSysteme - newJoursPris))} jours</span>
+                                </p>
+                            </div>
+
+                            {/* Mot de passe */}
+                            <div className="mb-4">
+                                <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
+                                    <AlertTriangle size={14} className="inline mr-1 text-amber-500" />
+                                    Confirmez avec votre mot de passe
+                                </label>
+                                <input
+                                    type="password"
+                                    value={soldePassword}
+                                    onChange={e => setSoldePassword(e.target.value)}
+                                    placeholder="Entrez votre mot de passe"
+                                    className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl px-4 py-2.5 focus:ring-2 focus:ring-amber-500"
+                                />
+                            </div>
+
+                            <div className="flex justify-end gap-3">
+                                <button 
+                                    onClick={() => { setShowSoldeModal(false); setAgentSolde(null); }}
+                                    className="px-4 py-2 text-sm font-bold text-slate-600 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-xl transition-colors"
+                                >
+                                    Annuler
+                                </button>
+                                <button 
+                                    onClick={handleSaveSolde}
+                                    disabled={soldeLoading || !soldePassword}
+                                    className="px-4 py-2 text-sm font-bold text-white bg-amber-600 hover:bg-amber-700 rounded-xl transition-colors disabled:opacity-50"
+                                >
+                                    {soldeLoading ? 'Enregistrement...' : 'Enregistrer'}
+                                </button>
+                            </div>
+                        </motion.div>
+                    </div>
+                )}
+            </AnimatePresence>
 
             {/* Modal Modification Agent */}
             <AnimatePresence>
@@ -432,15 +611,6 @@ export function Employees() {
                                         type="date"
                                         value={editForm.date_embauche}
                                         onChange={e => setEditForm({...editForm, date_embauche: e.target.value})}
-                                        className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl px-4 py-2.5"
-                                    />
-                                </div>
-                                <div>
-                                    <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Jours pris (avant système)</label>
-                                    <input
-                                        type="number"
-                                        value={editForm.jours_pris_historique}
-                                        onChange={e => setEditForm({...editForm, jours_pris_historique: parseInt(e.target.value) || 0})}
                                         className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl px-4 py-2.5"
                                     />
                                 </div>
