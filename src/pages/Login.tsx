@@ -94,7 +94,7 @@ export const Login = ({ onLogin }: LoginProps) => {
                     value={id}
                     onChange={(e) => setId(e.target.value)}
                     className="w-full bg-white/10 backdrop-blur border border-white/20 rounded-lg px-3 py-2 text-white placeholder-white/40 focus:outline-none focus:border-white/40 focus:bg-white/15 transition-all text-sm"
-                    placeholder="drh001"
+                    placeholder="nom d'utilisateur"
                     required
                   />
                 </div>
