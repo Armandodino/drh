@@ -5,7 +5,7 @@
 
 const API_BASE = '/api';
 
-// 1. EXPORT NOMMÉ : Indispensable pour l'import { login } dans Login.jsx
+// Login
 export const login = async (matricule, password) => {
   try {
     const response = await fetch(`${API_BASE}/login`, {
@@ -13,17 +13,14 @@ export const login = async (matricule, password) => {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ matricule, password }),
     });
-    
     return await response.json();
   } catch (error) {
-    console.error("❌ Erreur connexion serveur:", error);
+    console.error("❌ Erreur connexion:", error);
     throw error;
   }
 };
 
-/**
- * Helper interne pour les requêtes nécessitant le Token
- */
+// Helper avec authentification
 const fetchWithAuth = async (url, options = {}) => {
   const token = localStorage.getItem('drh_token');
   
@@ -33,63 +30,70 @@ const fetchWithAuth = async (url, options = {}) => {
     ...(token ? { 'Authorization': `Bearer ${token}` } : {})
   };
 
-  try {
-    const response = await fetch(`${API_BASE}${url}`, { ...options, headers });
+  const response = await fetch(`${API_BASE}${url}`, { ...options, headers });
 
-    // Si le token est expiré ou invalide
-    if (response.status === 401 || response.status === 403) {
-      localStorage.removeItem('drh_token');
-      localStorage.removeItem('user_data');
-      // On recharge pour déclencher le retour au Login proprement
-      window.location.reload();
-      return null;
-    }
-
-    if (!response.ok) {
-      const errData = await response.json();
-      throw new Error(errData.message || 'Erreur API');
-    }
-
-    return await response.json();
-  } catch (error) {
-    console.error(`❌ Erreur API sur ${url}:`, error);
-    throw error;
+  if (response.status === 401 || response.status === 403) {
+    localStorage.removeItem('drh_token');
+    localStorage.removeItem('user_data');
+    window.location.reload();
+    return null;
   }
+
+  if (!response.ok) {
+    const errData = await response.json().catch(() => ({}));
+    throw new Error(errData.message || 'Erreur API');
+  }
+
+  return await response.json();
 };
 
-// 2. EXPORT PAR DÉFAUT : Objet regroupant toutes les méthodes
+// API Object
 const api = {
   login,
   
-  // AGENTS
+  // Dashboard
+  getDashboard: () => fetchWithAuth('/dashboard'),
+  
+  // Agents
   getAgents: () => fetchWithAuth('/agents'),
   
-  addAgent: (agentData) => fetchWithAuth('/agents', {
+  addAgent: (data) => fetchWithAuth('/agents', {
     method: 'POST',
-    body: JSON.stringify(agentData)
+    body: JSON.stringify(data)
   }),
 
-  updateAgent: (id, agentData) => fetchWithAuth(`/agents/${id}`, {
+  updateAgent: (id, data) => fetchWithAuth(`/agents/${id}`, {
     method: 'PUT',
-    body: JSON.stringify(agentData)
+    body: JSON.stringify(data)
   }),
 
   deleteAgent: (id) => fetchWithAuth(`/agents/${id}`, {
     method: 'DELETE'
   }),
 
-  // CONGÉS
+  // Solde congés d'un agent
+  getAgentSolde: (id) => fetchWithAuth(`/employes/${id}/solde`),
+
+  // Congés
   getConges: () => fetchWithAuth('/conges'),
 
-  addConge: (congeData) => fetchWithAuth('/conges', {
+  addConge: (data) => fetchWithAuth('/conges', {
     method: 'POST',
-    body: JSON.stringify(congeData)
+    body: JSON.stringify(data)
   }),
 
   updateCongeStatus: (id, statut) => fetchWithAuth(`/conges/${id}`, {
     method: 'PUT',
     body: JSON.stringify({ statut })
-  })
+  }),
+
+  // Historique congés (avant système)
+  addHistoriqueConge: (employeId, data) => fetchWithAuth(`/agents/${employeId}/historique-conges`, {
+    method: 'POST',
+    body: JSON.stringify(data)
+  }),
+
+  getHistoriqueConges: (employeId) => fetchWithAuth(`/agents/${employeId}/historique-conges`)
 };
 
 export default api;
