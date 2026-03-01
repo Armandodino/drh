@@ -3,6 +3,7 @@ const express = require('express');
 const cors = require('cors');
 const jwt = require('jsonwebtoken');
 const bcrypt = require('bcrypt');
+const path = require('path');
 const db = require('./database'); // Connexion à ta base SQLite
 
 // Initialisation de l'application Express
@@ -142,14 +143,27 @@ app.put('/api/conges/:id', authenticateToken, (req, res) => {
     res.json({ message: "Statut mis à jour avec succès" });
   });
 });
+
+// ==========================================
+// 4. SERVIR LE FRONTEND EN PRODUCTION
+// ==========================================
+if (process.env.NODE_ENV === 'production') {
+  // Servir les fichiers statiques du frontend
+  app.use(express.static(path.join(__dirname, '../dist')));
+
+  // Toutes les routes non-API renvoient vers index.html (SPA)
+  // Utiliser une regex pour Express 5
+  app.get(/^\/(?!api).*/, (req, res) => {
+    res.sendFile(path.join(__dirname, '../dist/index.html'));
+  });
+}
+
 const PORT = process.env.PORT || 5000;
 const server = app.listen(PORT, '0.0.0.0', () => {
   console.log(`🚀 Serveur DRH-YOP sécurisé démarré sur http://localhost:${PORT}`);
+  console.log(`📦 Environnement: ${process.env.NODE_ENV || 'development'}`);
 });
 
 server.on('error', (err) => {
   console.error('❌ Erreur serveur:', err);
-});
-
-// Force le processus à rester en vie
-setInterval(() => { }, 1000 * 60 * 60); 
+}); 
