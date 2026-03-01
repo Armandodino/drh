@@ -433,6 +433,241 @@ app.get('/api/rappels', auth, async (req, res) => {
   }
 });
 
+// ============ NOTIFICATIONS ADMIN ============
+// Récupérer toutes les notifications
+app.get('/api/notifications', auth, async (req, res) => {
+  try {
+    const { rows } = await sql(`
+      SELECT n.*, e.nom, e.prenoms, e.matricule, e.direction,
+             c.date_depart, c.date_retour, c.nombre_jours
+      FROM notifications_admin n
+      LEFT JOIN employes e ON n.employe_id = e.id
+      LEFT JOIN conges c ON n.conge_id = c.id
+      ORDER BY n.est_lue ASC, n.date_notification DESC
+      LIMIT 50
+    `);
+    res.json(rows);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// Nombre de notifications non lues
+app.get('/api/notifications/count', auth, async (req, res) => {
+  try {
+    const { rows } = await sql("SELECT COUNT(*) as total FROM notifications_admin WHERE est_lue = FALSE");
+    res.json({ count: parseInt(rows[0]?.total || 0) });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// Marquer une notification comme lue
+app.put('/api/notifications/:id/read', auth, async (req, res) => {
+  try {
+    await sql('UPDATE notifications_admin SET est_lue = TRUE WHERE id = ?', [req.params.id]);
+    res.json({ message: "Notification marquée comme lue" });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// Marquer toutes les notifications comme lues
+app.put('/api/notifications/read-all', auth, async (req, res) => {
+  try {
+    await sql('UPDATE notifications_admin SET est_lue = TRUE');
+    res.json({ message: "Toutes les notifications marquées comme lues" });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// Marquer action comme effectuée
+app.put('/api/notifications/:id/action-done', auth, async (req, res) => {
+  try {
+    await sql('UPDATE notifications_admin SET action_effectuee = TRUE, est_lue = TRUE WHERE id = ?', [req.params.id]);
+    res.json({ message: "Action marquée comme effectuée" });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// ============ CONGÉS FINISSANT BIENTÔT ============
+app.get('/api/conges/fin-proche', auth, async (req, res) => {
+  try {
+    // Congés qui finissent dans les 3 prochains jours
+    const { rows } = await sql(`
+      SELECT c.*, e.nom, e.prenoms, e.matricule, e.direction, e.fonction,
+             (c.date_retour - CURRENT_DATE) as jours_restants
+      FROM conges c
+      JOIN employes e ON c.employe_id = e.id
+      WHERE c.statut = 'approuve'
+      AND c.date_retour >= CURRENT_DATE
+      AND c.date_retour <= CURRENT_DATE + INTERVAL '3 days'
+      ORDER BY c.date_retour ASC
+    `);
+    res.json(rows);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// ============ CHOIX CONGÉS ANNUELS ============
+// Récupérer tous les choix de congés pour une année
+app.get('/api/choix-conges/:annee', auth, async (req, res) => {
+  try {
+    const { rows } = await sql(`
+      SELECT cc.*, e.nom, e.prenoms, e.matricule, e.direction, e.fonction
+      FROM choix_conges_annuels cc
+      JOIN employes e ON cc.employe_id = e.id
+      WHERE cc.annee = ?
+      ORDER BY e.nom, e.prenoms
+    `, [req.params.annee]);
+    res.json(rows);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// Récupérer le choix d'un agent pour une année
+app.get('/api/choix-conges/agent/:employeId/:annee', auth, async (req, res) => {
+  try {
+    const { rows } = await sql(`
+      SELECT * FROM choix_conges_annuels 
+      WHERE employe_id = ? AND annee = ?
+    `, [req.params.employeId, req.params.annee]);
+    res.json(rows[0] || null);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// Créer ou mettre à jour un choix de congé
+app.post('/api/choix-conges', auth, async (req, res) => {
+  const { employe_id, annee, date_depart_souhaitee, nombre_jours, observations } = req.body;
+  
+  try {
+    // Calculer la date de retour
+    const dateDepart = new Date(date_depart_souhaitee);
+    const dateRetour = new Date(dateDepart);
+    dateRetour.setDate(dateRetour.getDate() + (nombre_jours || 30));
+    
+    const { rows } = await sql(`
+      INSERT INTO choix_conges_annuels (employe_id, annee, date_depart_souhaitee, date_retour_souhaitee, nombre_jours, observations, statut)
+      VALUES (?, ?, ?, ?, ?, ?, 'en_attente')
+      ON CONFLICT (employe_id, annee) DO UPDATE SET 
+        date_depart_souhaitee = EXCLUDED.date_depart_souhaitee,
+        date_retour_souhaitee = EXCLUDED.date_retour_souhaitee,
+        nombre_jours = EXCLUDED.nombre_jours,
+        observations = EXCLUDED.observations,
+        statut = 'en_attente',
+        updated_at = CURRENT_TIMESTAMP
+      RETURNING id
+    `, [employe_id, annee, date_depart_souhaitee, dateRetour.toISOString().split('T')[0], nombre_jours || 30, observations || '']);
+
+    // Créer une notification pour l'admin
+    const { rows: agentRows } = await sql('SELECT nom, prenoms, matricule FROM employes WHERE id = ?', [employe_id]);
+    const agent = agentRows[0];
+    
+    await sql(`
+      INSERT INTO notifications_admin (type, titre, message, employe_id, choix_conge_id, action_requise)
+      VALUES ('nouveau_choix', 'Nouveau choix de congé', ?, ?, ?, TRUE)
+    `, [`${agent?.nom} ${agent?.prenoms} (${agent?.matricule}) a soumis son choix de congé pour ${annee}`, employe_id, rows[0].id]);
+
+    res.json({ id: rows[0].id, message: "Choix de congé enregistré" });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// Valider un choix de congé (admin)
+app.put('/api/choix-conges/:id/valider', auth, async (req, res) => {
+  const { password, statut, observations } = req.body;
+  
+  try {
+    // Vérifier le mot de passe
+    const { rows: adminRows } = await sql('SELECT password FROM employes WHERE id = ?', [req.user.id]);
+    const admin = adminRows[0];
+    
+    if (!admin || !admin.password) {
+      return res.status(401).json({ message: "Session invalide" });
+    }
+    
+    const valid = await bcrypt.compare(password, admin.password);
+    if (!valid) {
+      return res.status(403).json({ message: "Mot de passe incorrect" });
+    }
+
+    await sql(`
+      UPDATE choix_conges_annuels 
+      SET statut = ?, observations = ?, date_validation = CURRENT_TIMESTAMP, valide_par = ?
+      WHERE id = ?
+    `, [statut, observations || '', req.user.id, req.params.id]);
+
+    res.json({ message: "Choix de congé " + (statut === 'valide' ? 'validé' : 'refusé') });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// Modifier un choix de congé (admin avec mot de passe)
+app.put('/api/choix-conges/:id', auth, async (req, res) => {
+  const { password, date_depart_souhaitee, nombre_jours, observations } = req.body;
+  
+  try {
+    // Vérifier le mot de passe
+    const { rows: adminRows } = await sql('SELECT password FROM employes WHERE id = ?', [req.user.id]);
+    const admin = adminRows[0];
+    
+    if (!admin || !admin.password) {
+      return res.status(401).json({ message: "Session invalide" });
+    }
+    
+    const valid = await bcrypt.compare(password, admin.password);
+    if (!valid) {
+      return res.status(403).json({ message: "Mot de passe incorrect" });
+    }
+
+    // Calculer la nouvelle date de retour
+    const dateDepart = new Date(date_depart_souhaitee);
+    const dateRetour = new Date(dateDepart);
+    dateRetour.setDate(dateRetour.getDate() + (nombre_jours || 30));
+    
+    await sql(`
+      UPDATE choix_conges_annuels 
+      SET date_depart_souhaitee = ?, date_retour_souhaitee = ?, nombre_jours = ?, 
+          observations = ?, statut = 'modifie', updated_at = CURRENT_TIMESTAMP
+      WHERE id = ?
+    `, [date_depart_souhaitee, dateRetour.toISOString().split('T')[0], nombre_jours || 30, observations || '', req.params.id]);
+
+    res.json({ message: "Choix de congé modifié" });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// Agents n'ayant pas encore fait leur choix
+app.get('/api/choix-conges/:annee/manquants', auth, async (req, res) => {
+  try {
+    const { rows } = await sql(`
+      SELECT e.id, e.nom, e.prenoms, e.matricule, e.direction
+      FROM employes e
+      WHERE e.role = 'AGENT' 
+      AND e.statut = 'actif'
+      AND e.id NOT IN (
+        SELECT employe_id FROM choix_conges_annuels WHERE annee = ?
+      )
+      ORDER BY e.nom, e.prenoms
+    `, [req.params.annee]);
+    res.json(rows);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
 // ============ FRONTEND ============
 if (process.env.NODE_ENV === 'production') {
   app.use(express.static(path.join(__dirname, '../dist')));

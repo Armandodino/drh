@@ -6,6 +6,8 @@ import { Employees } from "./pages/Employees";
 import { LeavePlanning } from "./pages/LeavePlanning";
 import { Documents } from "./pages/Documents";
 import { Login } from "./pages/Login";
+import { Notifications } from "./pages/Notifications";
+import { ChoixConges } from "./pages/ChoixConges";
 import { SplashScreen } from "./components/SplashScreen";
 import { useState, useEffect } from "react";
 import type { ReactNode } from "react";
@@ -62,6 +64,8 @@ function App() {
             <Route index element={<Dashboard />} />
             <Route path="employees" element={<Employees />} />
             <Route path="leaves" element={<LeavePlanning />} />
+            <Route path="notifications" element={<Notifications />} />
+            <Route path="choix-conges" element={<ChoixConges />} />
             <Route path="documents" element={<Documents />} />
           </Route>
 
