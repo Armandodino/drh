@@ -23,7 +23,9 @@ import {
   CheckCircle,
   Clock,
   X,
-  Menu
+  Menu,
+  FileDown,
+  Loader2
 } from 'lucide-react';
 import Image from 'next/image';
 
@@ -55,6 +57,15 @@ interface Conge {
   dateFin: string;
   statut: 'en_attente' | 'approuve' | 'refuse';
   nbJours: number;
+  agent?: {
+    id: string;
+    matricule: string;
+    nom: string;
+    prenom: string;
+    direction: string;
+    service?: string;
+    fonction?: string;
+  };
 }
 
 // Login Page Component
@@ -264,35 +275,57 @@ function Dashboard({
     },
   ]);
 
-  const [conges] = useState<Conge[]>([
-    {
-      id: '1',
-      agentId: '1',
-      type: 'Congé Annuel',
-      dateDebut: '2026-03-10',
-      dateFin: '2026-03-20',
-      statut: 'en_attente',
-      nbJours: 10,
-    },
-    {
-      id: '2',
-      agentId: '2',
-      type: 'Congé Exception',
-      dateDebut: '2026-03-05',
-      dateFin: '2026-03-07',
-      statut: 'approuve',
-      nbJours: 3,
-    },
-    {
-      id: '3',
-      agentId: '3',
-      type: 'Congé Maladie',
-      dateDebut: '2026-02-28',
-      dateFin: '2026-03-02',
-      statut: 'refuse',
-      nbJours: 3,
-    },
-  ]);
+  const [conges, setConges] = useState<Conge[]>([]);
+  const [loadingConges, setLoadingConges] = useState(true);
+  const [generatingDoc, setGeneratingDoc] = useState<string | null>(null);
+
+  // Fetch conges from API
+  useEffect(() => {
+    const fetchConges = async () => {
+      try {
+        const res = await fetch('/api/conges');
+        const data = await res.json();
+        if (data.conges) {
+          setConges(data.conges);
+        }
+      } catch (error) {
+        console.error('Error fetching conges:', error);
+      } finally {
+        setLoadingConges(false);
+      }
+    };
+    fetchConges();
+  }, []);
+
+  const generateDocument = async (type: 'cessation' | 'reprise', congeId: string) => {
+    setGeneratingDoc(congeId + type);
+    try {
+      const res = await fetch('/api/documents/generate', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ type, congeId }),
+      });
+
+      if (!res.ok) {
+        throw new Error('Erreur lors de la génération du document');
+      }
+
+      const blob = await res.blob();
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `${type}_${congeId}.pdf`;
+      document.body.appendChild(a);
+      a.click();
+      window.URL.revokeObjectURL(url);
+      document.body.removeChild(a);
+    } catch (error) {
+      console.error('Error generating document:', error);
+      alert('Erreur lors de la génération du document');
+    } finally {
+      setGeneratingDoc(null);
+    }
+  };
 
   const unreadCount = notifications.filter(n => !n.read).length;
 
@@ -566,38 +599,94 @@ function Dashboard({
           {/* Recent Leaves */}
           <Card>
             <CardHeader className="pb-2">
-              <CardTitle className="text-lg font-semibold text-gray-800">
-                Demandes récentes
-              </CardTitle>
+              <div className="flex items-center justify-between">
+                <CardTitle className="text-lg font-semibold text-gray-800">
+                  Demandes récentes
+                </CardTitle>
+                {loadingConges && (
+                  <span className="text-sm text-gray-500 flex items-center gap-2">
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                    Chargement...
+                  </span>
+                )}
+              </div>
             </CardHeader>
             <CardContent>
               <div className="overflow-x-auto">
                 <table className="w-full">
                   <thead>
                     <tr className="border-b border-gray-100">
+                      <th className="text-left py-3 px-4 text-xs font-semibold text-gray-500 uppercase">Agent</th>
                       <th className="text-left py-3 px-4 text-xs font-semibold text-gray-500 uppercase">Type</th>
                       <th className="text-left py-3 px-4 text-xs font-semibold text-gray-500 uppercase">Période</th>
                       <th className="text-left py-3 px-4 text-xs font-semibold text-gray-500 uppercase">Jours</th>
                       <th className="text-left py-3 px-4 text-xs font-semibold text-gray-500 uppercase">Statut</th>
+                      <th className="text-left py-3 px-4 text-xs font-semibold text-gray-500 uppercase">Actions</th>
                     </tr>
                   </thead>
                   <tbody>
-                    {conges.map((conge) => (
-                      <tr key={conge.id} className="border-b border-gray-50 hover:bg-gray-50 transition">
-                        <td className="py-3 px-4">
-                          <span className="font-medium text-gray-800">{conge.type}</span>
-                        </td>
-                        <td className="py-3 px-4 text-gray-600 text-sm">
-                          {conge.dateDebut} → {conge.dateFin}
-                        </td>
-                        <td className="py-3 px-4 text-gray-600">
-                          {conge.nbJours} jours
-                        </td>
-                        <td className="py-3 px-4">
-                          {getStatutBadge(conge.statut)}
+                    {conges.length === 0 ? (
+                      <tr>
+                        <td colSpan={6} className="py-8 text-center text-gray-500">
+                          Aucune demande de congé trouvée
                         </td>
                       </tr>
-                    ))}
+                    ) : (
+                      conges.map((conge) => (
+                        <tr key={conge.id} className="border-b border-gray-50 hover:bg-gray-50 transition">
+                          <td className="py-3 px-4">
+                            <div>
+                              <span className="font-medium text-gray-800">
+                                {conge.agent?.prenom} {conge.agent?.nom}
+                              </span>
+                              <p className="text-xs text-gray-500">{conge.agent?.matricule}</p>
+                            </div>
+                          </td>
+                          <td className="py-3 px-4">
+                            <span className="font-medium text-gray-800">{conge.type}</span>
+                          </td>
+                          <td className="py-3 px-4 text-gray-600 text-sm">
+                            {new Date(conge.dateDebut).toLocaleDateString('fr-FR')} → {new Date(conge.dateFin).toLocaleDateString('fr-FR')}
+                          </td>
+                          <td className="py-3 px-4 text-gray-600">
+                            {conge.nbJours} jours
+                          </td>
+                          <td className="py-3 px-4">
+                            {getStatutBadge(conge.statut)}
+                          </td>
+                          <td className="py-3 px-4">
+                            <div className="flex items-center gap-2">
+                              <button
+                                onClick={() => generateDocument('cessation', conge.id)}
+                                disabled={generatingDoc === conge.id + 'cessation' || conge.statut !== 'approuve'}
+                                className="flex items-center gap-1 px-2 py-1 text-xs rounded bg-blue-100 text-blue-700 hover:bg-blue-200 transition disabled:opacity-50 disabled:cursor-not-allowed"
+                                title="Générer certificat de cessation"
+                              >
+                                {generatingDoc === conge.id + 'cessation' ? (
+                                  <Loader2 className="h-3 w-3 animate-spin" />
+                                ) : (
+                                  <FileDown className="h-3 w-3" />
+                                )}
+                                Cessation
+                              </button>
+                              <button
+                                onClick={() => generateDocument('reprise', conge.id)}
+                                disabled={generatingDoc === conge.id + 'reprise' || conge.statut !== 'approuve'}
+                                className="flex items-center gap-1 px-2 py-1 text-xs rounded bg-green-100 text-green-700 hover:bg-green-200 transition disabled:opacity-50 disabled:cursor-not-allowed"
+                                title="Générer certificat de reprise"
+                              >
+                                {generatingDoc === conge.id + 'reprise' ? (
+                                  <Loader2 className="h-3 w-3 animate-spin" />
+                                ) : (
+                                  <FileDown className="h-3 w-3" />
+                                )}
+                                Reprise
+                              </button>
+                            </div>
+                          </td>
+                        </tr>
+                      ))
+                    )}
                   </tbody>
                 </table>
               </div>

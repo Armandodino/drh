@@ -63,10 +63,69 @@ export async function POST() {
           password: 'agent123',
           role: 'responsable',
         },
+        {
+          matricule: 'AGT004',
+          nom: 'Coulibaly',
+          prenom: 'Drissa',
+          email: 'd.coulibaly@yopougon.ci',
+          telephone: '+22507000005',
+          direction: 'Direction du Service Informatique',
+          service: 'Service Informatique',
+          fonction: 'Informaticien',
+          soldeConges: 31,
+          password: 'agent123',
+          role: 'agent',
+        },
       ];
 
+      const createdAgents = [];
       for (const agent of agents) {
-        await db.agent.create({ data: agent });
+        const created = await db.agent.create({ data: agent });
+        createdAgents.push(created);
+      }
+
+      // Create demo conges
+      const existingConges = await db.conge.count();
+      if (existingConges === 0 && createdAgents.length > 0) {
+        const today = new Date();
+        const congesData = [
+          {
+            agentId: createdAgents[4].id, // Coulibaly Drissa
+            type: 'Congé Annuel',
+            dateDebut: new Date(today.getFullYear(), 7, 2), // 02/08/current year
+            dateFin: new Date(today.getFullYear(), 7, 31), // 31/08/current year
+            nbJours: 30,
+            statut: 'approuve',
+          },
+          {
+            agentId: createdAgents[1].id, // Koné Fatou
+            type: 'Congé Annuel',
+            dateDebut: new Date(today.getFullYear(), 5, 15),
+            dateFin: new Date(today.getFullYear(), 6, 5),
+            nbJours: 20,
+            statut: 'en_attente',
+          },
+          {
+            agentId: createdAgents[2].id, // Touré Ibrahim
+            type: 'Congé Exception',
+            dateDebut: new Date(today.getFullYear(), 2, 10),
+            dateFin: new Date(today.getFullYear(), 2, 12),
+            nbJours: 3,
+            statut: 'approuve',
+          },
+          {
+            agentId: createdAgents[3].id, // Kouassi Marie
+            type: 'Congé Maladie',
+            dateDebut: new Date(today.getFullYear(), 1, 20),
+            dateFin: new Date(today.getFullYear(), 1, 25),
+            nbJours: 6,
+            statut: 'refuse',
+          },
+        ];
+
+        for (const conge of congesData) {
+          await db.conge.create({ data: conge });
+        }
       }
     }
 
