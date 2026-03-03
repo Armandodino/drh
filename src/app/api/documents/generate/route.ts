@@ -43,12 +43,15 @@ export async function POST(request: NextRequest) {
 
     const agent = conge.agent;
     const today = new Date();
+    
+    // Format date like "Yopougon, le 03/03/2026"
     const dateStr = `Yopougon, le ${today.toLocaleDateString('fr-FR', {
       day: '2-digit',
       month: '2-digit',
       year: 'numeric',
     })}`;
 
+    // Format dates for the document
     const dateDebut = new Date(conge.dateDebut).toLocaleDateString('fr-FR', {
       day: '2-digit',
       month: '2-digit',
@@ -61,12 +64,28 @@ export async function POST(request: NextRequest) {
       year: 'numeric',
     });
 
-    const diffTime = Math.abs(new Date(conge.dateFin).getTime() - new Date(conge.dateDebut).getTime());
-    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24)) + 1;
+    // Determine year for "au titre de l'année"
     const anneeConge = new Date(conge.dateDebut).getFullYear();
-    const civilite = agent.prenom === 'Marie' || agent.prenom === 'Fatou' ? 'Madame' : 'Monsieur';
-    const numeroRef = `N°_____/MY/DRH/${today.getFullYear()}`;
-
+    
+    // Reference number like "N°_________/MY/DRH/2026"
+    const numeroRef = `N°_________/MY/DRH/${today.getFullYear()}`;
+    
+    // Determine civility based on gender (simple heuristic)
+    const isFemale = agent.prenom === 'Marie' || agent.prenom === 'Fatou' || agent.prenom === 'Awa' || agent.prenom === 'Aminata';
+    const civilite = isFemale ? 'Madame' : 'Monsieur';
+    
+    // Format name: NOM Prénom
+    const nomComplet = `${agent.nom} ${agent.prenom}`;
+    
+    // Format matricule: (Mle 989-A)
+    const matricule = `(Mle ${agent.matricule})`;
+    
+    // Format function in UPPERCASE
+    const fonction = (agent.fonction || 'Agent').toUpperCase();
+    
+    // Format direction in UPPERCASE
+    const direction = agent.direction.toUpperCase();
+    
     const title = type === 'cessation' 
       ? 'CERTIFICAT DE CESSATION DE SERVICE'
       : 'CERTIFICAT DE REPRISE DE SERVICE';
@@ -74,12 +93,14 @@ export async function POST(request: NextRequest) {
     let bodyText: string;
     
     if (type === 'cessation') {
-      bodyText = `${civilite} ${agent.nom} ${agent.prenom} (Mle ${agent.matricule}) ${(agent.fonction || 'Agent').toUpperCase()}, en service à la ${agent.direction.toUpperCase()} de la Mairie de Yopougon, bénéficiaire d'un congé annuel de ${conge.nbJours || diffDays} jours au titre de l'année ${anneeConge}, est autorisé à jouir de son congé à compter du ${dateDebut}.\n\nA l'issue de son congé, l'intéressé(e) reprendra le service à son poste habituel le ${dateFin}.`;
+      // Exact format from ex1.pdf
+      bodyText = `${civilite} ${nomComplet} ${matricule} ${fonction}, en service à la ${direction} de la Mairie de Yopougon, bénéficiaire d'un congé annuel de ${conge.nbJours} jours au titre de l'année ${anneeConge}, est autorisé à jouir de son congé à compter du ${dateDebut}.\n\nA l'issue de son congé, l'intéressé(e) reprendra le service à son poste habituel le ${dateFin}.`;
     } else {
-      bodyText = `${civilite} ${agent.nom} ${agent.prenom} (Mle ${agent.matricule}) ${(agent.fonction || 'Agent').toUpperCase()}, en service à la ${agent.direction.toUpperCase()} de la Mairie de Yopougon, bénéficiaire d'un congé au titre de l'année ${anneeConge}, a effectivement repris le service le ${dateFin}.`;
+      // Exact format from ex2.pdf
+      bodyText = `${civilite} ${nomComplet} ${matricule} ${fonction}, en service à la ${direction} de la Mairie de Yopougon, bénéficiaire d'un congé au titre de l'année ${anneeConge}, a effectivement repris le service le ${dateFin}.`;
     }
 
-    // Prepare document data
+    // Prepare document data matching exact format
     const documentData = {
       type,
       document: {

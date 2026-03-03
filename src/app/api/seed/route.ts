@@ -63,8 +63,9 @@ export async function POST() {
           password: 'agent123',
           role: 'responsable',
         },
+        // Agent correspondant à l'exemple du PDF
         {
-          matricule: 'AGT004',
+          matricule: '989-A',
           nom: 'Coulibaly',
           prenom: 'Drissa',
           email: 'd.coulibaly@yopougon.ci',
@@ -84,40 +85,43 @@ export async function POST() {
         createdAgents.push(created);
       }
 
-      // Create demo conges
+      // Create demo conges - using the correct agent (Coulibaly Drissa with matricule 989-A)
       const existingConges = await db.conge.count();
       if (existingConges === 0 && createdAgents.length > 0) {
         const today = new Date();
+        const annee = today.getFullYear();
+        
         const congesData = [
+          // Congé pour Coulibaly Drissa (index 4) - correspondant à l'exemple
           {
-            agentId: createdAgents[4].id, // Coulibaly Drissa
+            agentId: createdAgents[4].id, // Coulibaly Drissa (989-A)
             type: 'Congé Annuel',
-            dateDebut: new Date(today.getFullYear(), 7, 2), // 02/08/current year
-            dateFin: new Date(today.getFullYear(), 7, 31), // 31/08/current year
-            nbJours: 30,
+            dateDebut: new Date(annee, 7, 2), // 02/08/current year
+            dateFin: new Date(annee, 8, 1), // 01/09/current year
+            nbJours: 31,
             statut: 'approuve',
           },
           {
             agentId: createdAgents[1].id, // Koné Fatou
             type: 'Congé Annuel',
-            dateDebut: new Date(today.getFullYear(), 5, 15),
-            dateFin: new Date(today.getFullYear(), 6, 5),
+            dateDebut: new Date(annee, 5, 15),
+            dateFin: new Date(annee, 6, 5),
             nbJours: 20,
             statut: 'en_attente',
           },
           {
             agentId: createdAgents[2].id, // Touré Ibrahim
             type: 'Congé Exception',
-            dateDebut: new Date(today.getFullYear(), 2, 10),
-            dateFin: new Date(today.getFullYear(), 2, 12),
+            dateDebut: new Date(annee, 2, 10),
+            dateFin: new Date(annee, 2, 12),
             nbJours: 3,
             statut: 'approuve',
           },
           {
             agentId: createdAgents[3].id, // Kouassi Marie
             type: 'Congé Maladie',
-            dateDebut: new Date(today.getFullYear(), 1, 20),
-            dateFin: new Date(today.getFullYear(), 1, 25),
+            dateDebut: new Date(annee, 1, 20),
+            dateFin: new Date(annee, 1, 25),
             nbJours: 6,
             statut: 'refuse',
           },
