@@ -6,6 +6,70 @@ export async function POST() {
   try {
     // Check if already seeded
     const existingCategories = await db.category.count();
+    const existingAgents = await db.agent.count();
+    
+    // Create demo agents for DRH if not exists
+    if (existingAgents === 0) {
+      const agents = [
+        {
+          matricule: 'DEV001',
+          nom: 'Diallo',
+          prenom: 'Amadou',
+          email: 'a.diallo@yopougon.ci',
+          telephone: '+22507000001',
+          direction: 'Direction des Ressources Humaines',
+          service: 'Service Personnel',
+          fonction: 'Directeur',
+          soldeConges: 30,
+          password: 'admin123',
+          role: 'admin',
+        },
+        {
+          matricule: 'AGT001',
+          nom: 'Koné',
+          prenom: 'Fatou',
+          email: 'f.kone@yopougon.ci',
+          telephone: '+22507000002',
+          direction: 'Direction des Finances',
+          service: 'Service Comptabilité',
+          fonction: 'Comptable',
+          soldeConges: 25,
+          password: 'agent123',
+          role: 'agent',
+        },
+        {
+          matricule: 'AGT002',
+          nom: 'Touré',
+          prenom: 'Ibrahim',
+          email: 'i.toure@yopougon.ci',
+          telephone: '+22507000003',
+          direction: 'Direction Technique',
+          service: 'Service Voirie',
+          fonction: 'Technicien',
+          soldeConges: 22,
+          password: 'agent123',
+          role: 'agent',
+        },
+        {
+          matricule: 'AGT003',
+          nom: 'Kouassi',
+          prenom: 'Marie',
+          email: 'm.kouassi@yopougon.ci',
+          telephone: '+22507000004',
+          direction: "Direction de l'État Civil",
+          service: 'Service État Civil',
+          fonction: "Agent d'accueil",
+          soldeConges: 28,
+          password: 'agent123',
+          role: 'responsable',
+        },
+      ];
+
+      for (const agent of agents) {
+        await db.agent.create({ data: agent });
+      }
+    }
+
     if (existingCategories > 0) {
       return NextResponse.json({ message: 'Database already seeded' });
     }

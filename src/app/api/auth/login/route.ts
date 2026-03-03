@@ -5,93 +5,164 @@ import bcrypt from 'bcryptjs';
 
 export async function POST(request: NextRequest) {
   try {
-    const { email, password } = await request.json();
+    const { matricule, password, email } = await request.json();
 
-    if (!email || !password) {
-      return NextResponse.json(
-        { error: 'Email et mot de passe requis' },
-        { status: 400 }
-      );
-    }
+    // Support both matricule (DRH) and email (Store admin) login
+    if (matricule && password) {
+      // DRH Agent login
+      const agent = await db.agent.findUnique({
+        where: { matricule: matricule.toUpperCase().trim() },
+      });
 
-    // Validate email format
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    if (!emailRegex.test(email)) {
-      return NextResponse.json(
-        { error: 'Format d\'email invalide' },
-        { status: 400 }
-      );
-    }
-
-    const admin = await db.admin.findUnique({
-      where: { email: email.toLowerCase().trim() },
-    });
-
-    if (!admin) {
-      return NextResponse.json(
-        { error: 'Identifiants incorrects' },
-        { status: 401 }
-      );
-    }
-
-    // Check if password is hashed (starts with $2a$, $2b$, or $2y$)
-    const isHashed = admin.password.startsWith('$2');
-    
-    let isValidPassword = false;
-    
-    if (isHashed) {
-      // Compare with hashed password
-      isValidPassword = await bcrypt.compare(password, admin.password);
-    } else {
-      // Plain text comparison (for migration)
-      isValidPassword = admin.password === password;
-      
-      // Hash and update the password for next time
-      if (isValidPassword) {
-        const hashedPassword = await bcrypt.hash(password, 10);
-        await db.admin.update({
-          where: { id: admin.id },
-          data: { password: hashedPassword },
-        });
+      if (!agent) {
+        return NextResponse.json(
+          { error: 'Matricule ou mot de passe incorrect' },
+          { status: 401 }
+        );
       }
+
+      if (!agent.active) {
+        return NextResponse.json(
+          { error: 'Votre compte est désactivé' },
+          { status: 401 }
+        );
+      }
+
+      // Check password
+      const isHashed = agent.password.startsWith('$2');
+      let isValidPassword = false;
+
+      if (isHashed) {
+        isValidPassword = await bcrypt.compare(password, agent.password);
+      } else {
+        isValidPassword = agent.password === password;
+        if (isValidPassword) {
+          const hashedPassword = await bcrypt.hash(password, 10);
+          await db.agent.update({
+            where: { id: agent.id },
+            data: { password: hashedPassword },
+          });
+        }
+      }
+
+      if (!isValidPassword) {
+        return NextResponse.json(
+          { error: 'Matricule ou mot de passe incorrect' },
+          { status: 401 }
+        );
+      }
+
+      // Set session cookie
+      const cookieStore = await cookies();
+      const sessionToken = Buffer.from(`agent:${agent.id}:${Date.now()}`).toString('base64');
+
+      cookieStore.set('drh_session', sessionToken, {
+        httpOnly: true,
+        secure: process.env.NODE_ENV === 'production',
+        sameSite: 'strict',
+        maxAge: 60 * 60 * 24 * 7, // 1 week
+        path: '/',
+      });
+
+      cookieStore.set('agent_id', agent.id, {
+        httpOnly: true,
+        secure: process.env.NODE_ENV === 'production',
+        sameSite: 'strict',
+        maxAge: 60 * 60 * 24 * 7,
+        path: '/',
+      });
+
+      return NextResponse.json({
+        user: {
+          id: agent.id,
+          matricule: agent.matricule,
+          nom: agent.nom,
+          prenom: agent.prenom,
+          direction: agent.direction,
+          service: agent.service,
+          soldeConges: agent.soldeConges,
+          role: agent.role,
+        },
+      });
     }
 
-    if (!isValidPassword) {
-      return NextResponse.json(
-        { error: 'Identifiants incorrects' },
-        { status: 401 }
-      );
+    // Store admin login (existing functionality)
+    if (email && password) {
+      const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+      if (!emailRegex.test(email)) {
+        return NextResponse.json(
+          { error: "Format d'email invalide" },
+          { status: 400 }
+        );
+      }
+
+      const admin = await db.admin.findUnique({
+        where: { email: email.toLowerCase().trim() },
+      });
+
+      if (!admin) {
+        return NextResponse.json(
+          { error: 'Identifiants incorrects' },
+          { status: 401 }
+        );
+      }
+
+      const isHashed = admin.password.startsWith('$2');
+      let isValidPassword = false;
+
+      if (isHashed) {
+        isValidPassword = await bcrypt.compare(password, admin.password);
+      } else {
+        isValidPassword = admin.password === password;
+        if (isValidPassword) {
+          const hashedPassword = await bcrypt.hash(password, 10);
+          await db.admin.update({
+            where: { id: admin.id },
+            data: { password: hashedPassword },
+          });
+        }
+      }
+
+      if (!isValidPassword) {
+        return NextResponse.json(
+          { error: 'Identifiants incorrects' },
+          { status: 401 }
+        );
+      }
+
+      const cookieStore = await cookies();
+      const sessionToken = Buffer.from(`${admin.id}:${Date.now()}`).toString('base64');
+
+      cookieStore.set('admin_session', sessionToken, {
+        httpOnly: true,
+        secure: process.env.NODE_ENV === 'production',
+        sameSite: 'strict',
+        maxAge: 60 * 60 * 24 * 7,
+        path: '/',
+      });
+
+      cookieStore.set('admin_id', admin.id, {
+        httpOnly: true,
+        secure: process.env.NODE_ENV === 'production',
+        sameSite: 'strict',
+        maxAge: 60 * 60 * 24 * 7,
+        path: '/',
+      });
+
+      return NextResponse.json({
+        admin: {
+          id: admin.id,
+          email: admin.email,
+          name: admin.name,
+          role: admin.role,
+        },
+      });
     }
 
-    // Set a secure session cookie
-    const cookieStore = await cookies();
-    const sessionToken = Buffer.from(`${admin.id}:${Date.now()}`).toString('base64');
-    
-    cookieStore.set('admin_session', sessionToken, {
-      httpOnly: true,
-      secure: process.env.NODE_ENV === 'production',
-      sameSite: 'strict',
-      maxAge: 60 * 60 * 24 * 7, // 1 week
-      path: '/',
-    });
-
-    // Store session with admin ID for verification
-    cookieStore.set('admin_id', admin.id, {
-      httpOnly: true,
-      secure: process.env.NODE_ENV === 'production',
-      sameSite: 'strict',
-      maxAge: 60 * 60 * 24 * 7,
-      path: '/',
-    });
-
-    return NextResponse.json({
-      admin: {
-        id: admin.id,
-        email: admin.email,
-        name: admin.name,
-        role: admin.role,
-      },
-    });
+    return NextResponse.json(
+      { error: 'Identifiants requis' },
+      { status: 400 }
+    );
   } catch (error) {
     console.error('Login error:', error);
     return NextResponse.json(

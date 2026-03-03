@@ -1,4 +1,4 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 import { Toaster } from "@/components/ui/toaster";
@@ -13,30 +13,19 @@ const geistMono = Geist_Mono({
   subsets: ["latin"],
 });
 
+export const viewport: Viewport = {
+  themeColor: "#1a1a2e",
+};
+
 export const metadata: Metadata = {
-  title: "Oluwa Quincaillerie - Votre Partenaire Travaux à Abidjan",
-  description: "Découvrez notre large sélection de produits de qualité pour la plomberie, l'électricité, la peinture, les outils et plus encore. Livraison rapide à Abidjan. Prix compétitifs.",
-  keywords: ["quincaillerie", "plomberie", "électricité", "peinture", "outils", "bâtiment", "Abidjan", "Côte d'Ivoire", "Oluwa"],
-  authors: [{ name: "Oluwa Quincaillerie" }],
+  metadataBase: new URL("http://localhost:3000"),
+  title: "DRH Yopougon - Gestion des Congés",
+  description: "Système de gestion des congés et ressources humaines de la Mairie de Yopougon",
+  keywords: ["DRH", "Yopougon", "Congés", "Ressources Humaines", "Mairie"],
+  authors: [{ name: "Commune de Yopougon" }],
   icons: {
-    icon: "/images/logo-store.jpeg",
+    icon: "/AbidjanLogo.png",
   },
-  openGraph: {
-    title: "Oluwa Quincaillerie - Votre Partenaire Travaux",
-    description: "Tout pour vos travaux en un seul endroit. Livraison rapide à Abidjan.",
-    type: "website",
-    locale: "fr_CI",
-    images: [
-      {
-        url: "/images/logo-store.jpeg",
-        width: 1200,
-        height: 630,
-        alt: "Oluwa Quincaillerie",
-      },
-    ],
-  },
-  manifest: "/manifest.json",
-  themeColor: "#E94560",
 };
 
 export default function RootLayout({

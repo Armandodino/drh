@@ -5,42 +5,55 @@ import { cookies } from 'next/headers';
 export async function GET() {
   try {
     const cookieStore = await cookies();
-    const sessionId = cookieStore.get('admin_id')?.value;
+    
+    // Check for DRH agent session first
+    const agentId = cookieStore.get('agent_id')?.value;
+    const drhSession = cookieStore.get('drh_session')?.value;
 
-    if (!sessionId) {
-      return NextResponse.json(
-        { error: 'Non authentifié' },
-        { status: 401 }
-      );
+    if (agentId && drhSession) {
+      const agent = await db.agent.findUnique({
+        where: { id: agentId },
+        select: {
+          id: true,
+          matricule: true,
+          nom: true,
+          prenom: true,
+          direction: true,
+          service: true,
+          soldeConges: true,
+          role: true,
+          active: true,
+        },
+      });
+
+      if (agent && agent.active) {
+        return NextResponse.json({ user: agent });
+      }
     }
 
-    const admin = await db.admin.findUnique({
-      where: { id: sessionId },
-      select: {
-        id: true,
-        email: true,
-        name: true,
-        role: true,
-      },
-    });
+    // Check for admin session
+    const adminId = cookieStore.get('admin_id')?.value;
+    const adminSession = cookieStore.get('admin_session')?.value;
 
-    if (!admin) {
-      // Clear invalid cookies
-      const response = NextResponse.json(
-        { error: 'Session invalide' },
-        { status: 401 }
-      );
-      response.cookies.delete('admin_session');
-      response.cookies.delete('admin_id');
-      return response;
+    if (adminId && adminSession) {
+      const admin = await db.admin.findUnique({
+        where: { id: adminId },
+        select: {
+          id: true,
+          email: true,
+          name: true,
+          role: true,
+        },
+      });
+
+      if (admin) {
+        return NextResponse.json({ admin });
+      }
     }
 
-    return NextResponse.json({ admin });
+    return NextResponse.json({ error: 'Non authentifié' }, { status: 401 });
   } catch (error) {
     console.error('Auth check error:', error);
-    return NextResponse.json(
-      { error: 'Erreur serveur' },
-      { status: 500 }
-    );
+    return NextResponse.json({ error: 'Erreur serveur' }, { status: 500 });
   }
 }

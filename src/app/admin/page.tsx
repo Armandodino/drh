@@ -24,7 +24,10 @@ import {
   EyeOff,
   Lock,
   Mail,
-  Store
+  Store,
+  Bell,
+  Search,
+  ChevronDown
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -32,6 +35,15 @@ import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
+import { ScrollArea } from '@/components/ui/scroll-area';
 
 interface Admin {
   id: string;
@@ -436,10 +448,91 @@ export default function AdminPage() {
               {activeTab === 'settings' && 'Paramètres'}
             </h1>
           </div>
-          <Button variant="outline" size="sm" onClick={() => router.push('/')} className="hidden sm:flex">
-            <Store className="h-4 w-4 mr-2" />
-            Voir la boutique
-          </Button>
+          
+          {/* Right Actions */}
+          <div className="flex items-center gap-2">
+            {/* Search (Desktop) */}
+            <div className="hidden md:flex items-center relative">
+              <Search className="absolute left-3 h-4 w-4 text-gray-400" />
+              <input
+                type="text"
+                placeholder="Rechercher..."
+                className="pl-9 pr-4 py-2 bg-gray-50 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-orange-500/20 focus:border-orange-500 w-48 lg:w-64"
+              />
+            </div>
+
+            {/* Notifications */}
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="relative hover:bg-gray-100 rounded-xl"
+                >
+                  <Bell className="h-5 w-5 text-gray-600" />
+                  {/* Notification Badge */}
+                  <span className="absolute -top-1 -right-1 h-5 w-5 bg-red-500 text-white text-[10px] font-bold rounded-full flex items-center justify-center">
+                    3
+                  </span>
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end" className="w-80 p-0">
+                <DropdownMenuLabel className="px-4 py-3 font-semibold text-gray-900 flex items-center justify-between">
+                  <span>Notifications</span>
+                  <Badge variant="secondary" className="text-xs">3 nouvelles</Badge>
+                </DropdownMenuLabel>
+                <DropdownMenuSeparator className="m-0" />
+                <ScrollArea className="h-72">
+                  <DropdownMenuItem className="flex flex-col items-start gap-1 px-4 py-3 cursor-pointer hover:bg-orange-50 focus:bg-orange-50">
+                    <div className="flex items-center gap-2">
+                      <div className="h-2 w-2 rounded-full bg-orange-500 animate-pulse" />
+                      <span className="font-medium text-sm text-gray-900">Nouvelle commande</span>
+                    </div>
+                    <p className="text-xs text-gray-500 pl-4">Commande #CMD-2024-001 reçue</p>
+                    <span className="text-[10px] text-gray-400 pl-4">Il y a 5 min</span>
+                  </DropdownMenuItem>
+                  <DropdownMenuItem className="flex flex-col items-start gap-1 px-4 py-3 cursor-pointer hover:bg-blue-50 focus:bg-blue-50">
+                    <div className="flex items-center gap-2">
+                      <div className="h-2 w-2 rounded-full bg-blue-500" />
+                      <span className="font-medium text-sm text-gray-900">Stock faible</span>
+                    </div>
+                    <p className="text-xs text-gray-500 pl-4">Marteau - 3 unités restantes</p>
+                    <span className="text-[10px] text-gray-400 pl-4">Il y a 1h</span>
+                  </DropdownMenuItem>
+                  <DropdownMenuItem className="flex flex-col items-start gap-1 px-4 py-3 cursor-pointer hover:bg-green-50 focus:bg-green-50">
+                    <div className="flex items-center gap-2">
+                      <div className="h-2 w-2 rounded-full bg-green-500" />
+                      <span className="font-medium text-sm text-gray-900">Paiement confirmé</span>
+                    </div>
+                    <p className="text-xs text-gray-500 pl-4">Commande #CMD-2024-002 payée</p>
+                    <span className="text-[10px] text-gray-400 pl-4">Il y a 2h</span>
+                  </DropdownMenuItem>
+                </ScrollArea>
+                <DropdownMenuSeparator className="m-0" />
+                <div className="p-2">
+                  <Button variant="ghost" className="w-full text-sm text-orange-600 hover:text-orange-700 hover:bg-orange-50">
+                    Voir toutes les notifications
+                  </Button>
+                </div>
+              </DropdownMenuContent>
+            </DropdownMenu>
+
+            {/* Settings */}
+            <Button
+              variant="ghost"
+              size="icon"
+              className={`hover:bg-gray-100 rounded-xl ${activeTab === 'settings' ? 'bg-orange-50 text-orange-600' : 'text-gray-600'}`}
+              onClick={() => setActiveTab('settings')}
+            >
+              <Settings className="h-5 w-5" />
+            </Button>
+
+            {/* View Store Button */}
+            <Button variant="outline" size="sm" onClick={() => router.push('/')} className="hidden sm:flex ml-2">
+              <Store className="h-4 w-4 mr-2" />
+              Voir la boutique
+            </Button>
+          </div>
         </header>
 
         {/* Content */}

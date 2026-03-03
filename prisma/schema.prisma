@@ -108,3 +108,65 @@ model Promotion {
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 }
+
+// Agents DRH - Personnel de la mairie
+model Agent {
+  id            String   @id @default(cuid())
+  matricule     String   @unique
+  nom           String
+  prenom        String
+  email         String?
+  telephone     String?
+  direction     String
+  service       String?
+  fonction      String?
+  dateEntree    DateTime?
+  soldeConges   Int      @default(30)
+  password      String
+  role          String   @default("agent") // "agent", "responsable", "admin"
+  active        Boolean  @default(true)
+  conges        Conge[]
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+}
+
+// Demandes de congés
+model Conge {
+  id          String   @id @default(cuid())
+  agentId     String
+  agent       Agent    @relation(fields: [agentId], references: [id])
+  type        String   // "annuel", "exception", "maladie", "maternite", etc.
+  dateDebut   DateTime
+  dateFin     DateTime
+  nbJours     Int
+  motif       String?
+  statut      String   @default("en_attente") // "en_attente", "approuve", "refuse"
+  approuvePar String?
+  dateApprouve DateTime?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+// Notifications
+model Notification {
+  id        String   @id @default(cuid())
+  agentId   String
+  title     String
+  message   String
+  type      String   @default("info") // "info", "warning", "success", "error"
+  read      Boolean  @default(false)
+  createdAt DateTime @default(now())
+}
+
+// Choix annuels de congés
+model ChoixAnnuel {
+  id        String   @id @default(cuid())
+  agentId   String
+  annee     Int
+  periode1  String?  // Premier choix de période
+  periode2  String?  // Deuxième choix de période
+  periode3  String?  // Troisième choix de période
+  statut    String   @default("en_attente")
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
