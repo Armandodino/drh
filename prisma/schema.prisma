@@ -1,0 +1,110 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+// Administrateur de la boutique
+model Admin {
+  id        String   @id @default(cuid())
+  email     String   @unique
+  password  String
+  name      String
+  role      String   @default("admin") // "admin" ou "super_admin"
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+// Catégories de produits (plomberie, électricité, etc.)
+model Category {
+  id          String    @id @default(cuid())
+  name        String
+  slug        String    @unique
+  description String?
+  image       String?
+  icon        String?   // Nom de l'icône Lucide
+  active      Boolean   @default(true)
+  sortOrder   Int       @default(0)
+  products    Product[]
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+}
+
+// Produits de la quincaillerie
+model Product {
+  id          String    @id @default(cuid())
+  name        String
+  slug        String    @unique
+  description String?
+  price       Float
+  oldPrice    Float?    // Prix avant promotion
+  image       String?
+  images      String?   // JSON array d'images supplémentaires
+  stock       Int       @default(0)
+  sku         String?   // Code produit
+  categoryId  String?
+  category    Category? @relation(fields: [categoryId], references: [id])
+  featured    Boolean   @default(false) // Produit en vedette
+  active      Boolean   @default(true)
+  sortOrder   Int       @default(0)
+  orderItems  OrderItem[]
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+}
+
+// Commandes des clients
+model Order {
+  id            String      @id @default(cuid())
+  customerName  String
+  customerPhone String
+  customerEmail String?
+  customerAddress String?
+  status        String      @default("pending") // pending, confirmed, shipped, delivered, cancelled
+  total         Float
+  notes         String?
+  whatsappSent  Boolean     @default(false)
+  items         OrderItem[]
+  createdAt     DateTime    @default(now())
+  updatedAt     DateTime    @updatedAt
+}
+
+// Articles dans une commande
+model OrderItem {
+  id        String  @id @default(cuid())
+  orderId   String
+  order     Order   @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  productId String
+  product   Product @relation(fields: [productId], references: [id])
+  quantity  Int
+  price     Float   // Prix au moment de la commande
+}
+
+// Paramètres de la boutique
+model Setting {
+  id              String   @id @default(cuid())
+  key             String   @unique
+  value           String
+  description     String?
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+}
+
+// Promotions
+model Promotion {
+  id          String   @id @default(cuid())
+  title       String
+  description String?
+  discount    Float    // Pourcentage de réduction
+  code        String?  // Code promo optionnel
+  startDate   DateTime
+  endDate     DateTime
+  active      Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
