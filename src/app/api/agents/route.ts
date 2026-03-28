@@ -50,7 +50,7 @@ export async function POST(request: NextRequest) {
   try {
     const user = getUserFromRequest(request);
 
-    if (!isAdmin(user)) {
+    if (!user || !isAdmin(user)) {
       return NextResponse.json({ message: 'Non autorisé' }, { status: 401 });
     }
 
@@ -88,6 +88,15 @@ export async function POST(request: NextRequest) {
         statut: 'actif',
         joursCongeAnnuel: 30,
       },
+    });
+
+    // Tracer l'action dans le journal d'activité
+    await db.auditLog.create({
+      data: {
+        action: 'AJOUT_AGENT',
+        details: `Ajout du nouvel agent ${data.nom.toUpperCase()} ${data.prenoms} (${data.matricule.toLowerCase()})`,
+        adminId: user.id
+      }
     });
 
     return NextResponse.json({

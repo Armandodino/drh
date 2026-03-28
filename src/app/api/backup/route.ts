@@ -6,7 +6,7 @@ import { getUserFromRequest, isAdmin } from '@/lib/auth';
 export async function GET(request: NextRequest) {
   try {
     const user = getUserFromRequest(request);
-    if (!isAdmin(user)) {
+    if (!user || !isAdmin(user)) {
       return NextResponse.json({ message: 'Non autorisé' }, { status: 401 });
     }
 
@@ -43,6 +43,15 @@ export async function GET(request: NextRequest) {
 
     const json = JSON.stringify(backup, null, 2);
     const date = new Date().toISOString().split('T')[0];
+
+    // Tracer la sauvegarde
+    await db.auditLog.create({
+      data: {
+        action: 'SAUVEGARDE_BDD',
+        details: `Génération d'une sauvegarde complète JSON (DRH_Yopougon_Backup_${date}.json)`,
+        adminId: user.id
+      }
+    });
 
     return new NextResponse(json, {
       headers: {

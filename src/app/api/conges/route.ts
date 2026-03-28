@@ -73,6 +73,15 @@ export async function POST(request: NextRequest) {
       }
     });
 
+    // Tracer l'action dans le journal d'activité
+    await db.auditLog.create({
+      data: {
+        action: 'CREATION_CONGE',
+        details: `Ajout d'un congé ${data.type || 'Annuel'} de ${data.nombre_jours} jours`,
+        adminId: user.id
+      }
+    });
+
     return NextResponse.json(newConge, { status: 201 });
   } catch (error: any) {
     console.error('Erreur création congé:', error);

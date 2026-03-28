@@ -7,7 +7,7 @@ import * as XLSX from 'xlsx';
 export async function GET(request: NextRequest) {
   try {
     const user = getUserFromRequest(request);
-    if (!isAdmin(user)) {
+    if (!user || !isAdmin(user)) {
       return NextResponse.json({ message: 'Non autorisé' }, { status: 401 });
     }
 
@@ -81,6 +81,15 @@ export async function GET(request: NextRequest) {
     const buf = XLSX.write(wb, { type: 'buffer', bookType: 'xlsx' });
 
     const filename = type === 'all' ? 'DRH_Yopougon_Export_Complet.xlsx' : `DRH_Yopougon_${type}.xlsx`;
+
+    // Tracer l'exportation
+    await db.auditLog.create({
+      data: {
+        action: 'EXPORT_DONNEES',
+        details: `Exportation du fichier Excel: ${filename}`,
+        adminId: user.id
+      }
+    });
 
     return new NextResponse(buf, {
       headers: {

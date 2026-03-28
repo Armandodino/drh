@@ -218,12 +218,12 @@ const api = {
     return res.json();
   },
 
-  updateCongeStatus: async (id: number, statut: string) => {
+  updateCongeStatus: async (id: number, statut: string, password?: string) => {
     const token = localStorage.getItem('drh_token');
     const res = await fetch(`${API_BASE}/conges/${id}`, {
       method: 'PUT',
       headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
-      body: JSON.stringify({ statut }),
+      body: JSON.stringify({ statut, password }),
     });
     return res.json();
   },
@@ -1085,12 +1085,27 @@ export default function DRHApp() {
         return;
       }
       if (passwordAction.type === 'confirm') {
-        await api.updateCongeStatus(passwordAction.conge.id, 'Approuvé');
+        const response = await api.updateCongeStatus(passwordAction.conge.id, 'Approuvé', confirmPassword);
+        if (response.message) {
+          toast.error(response.message);
+          return;
+        }
         toast.success('Congé approuvé');
         generateArreteDeService(passwordAction.conge);
-      } else {
-        await api.updateCongeStatus(passwordAction.conge.id, 'Annulé');
+      } else if (passwordAction.type === 'reject') {
+        const response = await api.updateCongeStatus(passwordAction.conge.id, 'Annulé', confirmPassword);
+        if (response.message) {
+          toast.error(response.message);
+          return;
+        }
         toast.success('Congé annulé');
+      } else if (passwordAction.type === 'deleteAgent') {
+        const response = await api.deleteAgent(passwordAction.agentId, confirmPassword);
+        if (response.message && response.message !== 'Agent supprimé avec succès') {
+          toast.error(response.message);
+          return;
+        }
+        toast.success('Agent supprimé');
       }
       setShowPasswordModal(false);
       setPasswordAction(null);
