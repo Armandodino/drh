@@ -587,8 +587,10 @@ const SplashScreen = ({ onComplete }: { onComplete: () => void }) => {
       transition={{ duration: 0.6, ease: 'easeInOut' }}
       className="fixed inset-0 z-[999] flex items-center justify-center overflow-hidden"
     >
-      {/* Deep gradient background */}
-      <div className="absolute inset-0 bg-gradient-to-br from-slate-950 via-slate-900 to-slate-950" />
+      {/* Background with blur */}
+      <div className="absolute inset-0 bg-cover bg-center" style={{ backgroundImage: 'url(/login-bg.png)' }} />
+      <div className="absolute inset-0 bg-slate-900/40 backdrop-blur-xl" />
+      <div className="absolute inset-0 bg-gradient-to-b from-slate-950/80 via-slate-900/60 to-slate-950/90" />
 
       {/* Animated orbs */}
       <motion.div 
