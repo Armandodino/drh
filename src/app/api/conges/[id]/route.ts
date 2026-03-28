@@ -3,7 +3,7 @@ import { db } from '@/lib/db';
 import { getUserFromRequest } from '@/lib/auth';
 import bcrypt from 'bcryptjs';
 
-export async function PUT(request: NextRequest, { params }: { params: { id: string } }) {
+export async function PUT(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
     const user = getUserFromRequest(request);
 
