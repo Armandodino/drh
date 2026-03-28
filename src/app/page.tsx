@@ -1173,12 +1173,12 @@ export default function DRHApp() {
   if (!isLoggedIn) {
     return (
       <div className="min-h-screen relative flex items-center justify-center p-4 sm:p-8">
-        {/* Background Layer with reduced blur */}
+        {/* Background Layer with elegant blur */}
         <div 
           className="absolute inset-0 bg-cover bg-center bg-no-repeat"
           style={{ backgroundImage: 'url(/login-bg.png)' }}
         />
-        <div className="absolute inset-0 bg-slate-900/50 backdrop-blur-none" />
+        <div className="absolute inset-0 bg-slate-900/40 backdrop-blur-md" />
 
         {/* Animated ambient light behind the card blending Ivory Coast Colors */}
         <motion.div
