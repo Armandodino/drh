@@ -565,143 +565,144 @@ const generateNoteReprise = (conge: Conge) => {
 // ============================================
 const SplashScreen = ({ onComplete }: { onComplete: () => void }) => {
   const [progress, setProgress] = useState(0);
-  const [currentStep, setCurrentStep] = useState(0);
-
-  const steps = [
-    { label: 'Connexion sécurisée...', done: false },
-    { label: 'Chargement des données RH...', done: false },
-    { label: 'Préparation du tableau de bord...', done: false },
-    { label: 'Bienvenue !', done: false },
-  ];
+  const [statusText, setStatusText] = useState('Connexion sécurisée...');
 
   useEffect(() => {
-    const timings = [
-      { step: 0, prog: 25, delay: 300 },
-      { step: 1, prog: 55, delay: 900 },
-      { step: 2, prog: 85, delay: 1500 },
-      { step: 3, prog: 100, delay: 2100 },
+    const steps = [
+      { text: 'Connexion sécurisée...', prog: 20, delay: 200 },
+      { text: 'Chargement des données RH...', prog: 50, delay: 800 },
+      { text: 'Préparation du tableau de bord...', prog: 80, delay: 1600 },
+      { text: 'Bienvenue !', prog: 100, delay: 2200 },
     ];
-    timings.forEach(({ step, prog, delay }) => {
-      setTimeout(() => { setCurrentStep(step); setProgress(prog); }, delay);
+    steps.forEach(({ text, prog, delay }) => {
+      setTimeout(() => { setStatusText(text); setProgress(prog); }, delay);
     });
-    setTimeout(() => onComplete(), 2800);
+    setTimeout(() => onComplete(), 2900);
   }, [onComplete]);
-
-  const r = 54;
-  const circumference = 2 * Math.PI * r;
 
   return (
     <motion.div
       initial={{ opacity: 1 }}
-      exit={{ opacity: 0, scale: 1.05 }}
-      transition={{ duration: 0.5 }}
-      className="fixed inset-0 z-50 flex flex-col items-center justify-center overflow-hidden"
+      exit={{ opacity: 0, scale: 1.02 }}
+      transition={{ duration: 0.6, ease: 'easeInOut' }}
+      className="fixed inset-0 z-[999] flex items-center justify-center overflow-hidden"
     >
-      {/* Background */}
-      <div className="absolute inset-0 bg-cover bg-center" style={{ backgroundImage: 'url(/login-bg.png)' }} />
-      <div className="absolute inset-0 bg-slate-900/30 backdrop-blur-md" />
-      <div className="absolute inset-0 bg-gradient-to-b from-slate-950/92 via-slate-900/82 to-slate-950/96" />
+      {/* Deep gradient background */}
+      <div className="absolute inset-0 bg-gradient-to-br from-slate-950 via-slate-900 to-slate-950" />
 
-      {/* Ambient glows */}
-      <motion.div animate={{ scale: [1, 1.25, 1], opacity: [0.15, 0.35, 0.15] }} transition={{ duration: 6, repeat: Infinity }}
-        className="absolute top-1/3 left-1/4 w-[450px] h-[450px] bg-orange-500/20 rounded-full blur-[110px]" />
-      <motion.div animate={{ scale: [1.2, 1, 1.2], opacity: [0.1, 0.25, 0.1] }} transition={{ duration: 7, repeat: Infinity, delay: 1 }}
-        className="absolute bottom-1/3 right-1/4 w-[350px] h-[350px] bg-emerald-500/20 rounded-full blur-[90px]" />
+      {/* Animated orbs */}
+      <motion.div 
+        animate={{ scale: [1, 1.4, 1], opacity: [0.08, 0.2, 0.08] }} 
+        transition={{ duration: 5, repeat: Infinity, ease: 'easeInOut' }}
+        className="absolute top-1/4 -left-20 w-[500px] h-[500px] bg-orange-500 rounded-full blur-[150px]" 
+      />
+      <motion.div 
+        animate={{ scale: [1.3, 1, 1.3], opacity: [0.06, 0.15, 0.06] }} 
+        transition={{ duration: 6, repeat: Infinity, ease: 'easeInOut', delay: 1.5 }}
+        className="absolute bottom-1/4 -right-20 w-[400px] h-[400px] bg-emerald-500 rounded-full blur-[130px]" 
+      />
 
-      {/* Main content */}
-      <div className="relative z-10 flex flex-col items-center text-center px-8 max-w-md w-full">
-
-        {/* Logo with SVG circular progress ring */}
-        <div className="relative mb-8 w-[136px] h-[136px]">
-          <svg width="140" height="140" className="absolute -top-[2px] -left-[2px]" style={{ transform: 'rotate(-90deg)' }}>
-            <defs>
-              <linearGradient id="ringGrad" x1="0%" y1="0%" x2="100%" y2="0%">
-                <stop offset="0%" stopColor="#f97316" />
-                <stop offset="50%" stopColor="#ffffff" />
-                <stop offset="100%" stopColor="#10b981" />
-              </linearGradient>
-            </defs>
-            <circle cx="70" cy="70" r={r} fill="none" stroke="rgba(255,255,255,0.08)" strokeWidth="4"/>
-            <motion.circle
-              cx="70" cy="70" r={r} fill="none" stroke="url(#ringGrad)" strokeWidth="4" strokeLinecap="round"
-              strokeDasharray={circumference}
-              initial={{ strokeDashoffset: circumference }}
-              animate={{ strokeDashoffset: circumference - (progress / 100) * circumference }}
-              transition={{ duration: 0.6, ease: 'easeOut' }}
-            />
-          </svg>
+      {/* Center card */}
+      <div className="relative z-10 flex flex-col items-center text-center px-6">
+        
+        {/* Animated Logo */}
+        <motion.div
+          initial={{ scale: 0, opacity: 0 }}
+          animate={{ scale: 1, opacity: 1 }}
+          transition={{ type: 'spring', stiffness: 180, damping: 14, delay: 0.1 }}
+          className="relative mb-10"
+        >
+          {/* Outer ring pulse */}
           <motion.div
-            initial={{ scale: 0, rotate: -20 }}
-            animate={{ scale: 1, rotate: 0 }}
-            transition={{ type: 'spring', stiffness: 200, damping: 14, delay: 0.1 }}
-            className="w-full h-full rounded-full bg-white/10 backdrop-blur-xl border border-white/20 flex items-center justify-center overflow-hidden shadow-2xl"
-          >
-            <img src="/logo.png" alt="Logo Mairie de Yopougon" className="w-20 h-20 object-contain drop-shadow-xl" />
-          </motion.div>
-        </div>
-
-        {/* Titles */}
-        <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.3 }}>
-          <h1 className="text-4xl font-black text-white tracking-tight uppercase">
-            Mairie de <span className="text-orange-400">Yopougon</span>
-          </h1>
-          <div className="flex items-center justify-center gap-3 mt-2">
-            <div className="h-px flex-1 bg-gradient-to-r from-transparent to-orange-400/50" />
-            <p className="text-[11px] font-bold text-white/50 tracking-[0.18em] uppercase">Direction des Ressources Humaines</p>
-            <div className="h-px flex-1 bg-gradient-to-l from-transparent to-emerald-400/50" />
+            animate={{ scale: [1, 1.15, 1], opacity: [0.3, 0, 0.3] }}
+            transition={{ duration: 2, repeat: Infinity, ease: 'easeOut' }}
+            className="absolute -inset-4 rounded-full border-2 border-orange-400/30"
+          />
+          <motion.div
+            animate={{ scale: [1, 1.3, 1], opacity: [0.2, 0, 0.2] }}
+            transition={{ duration: 2, repeat: Infinity, ease: 'easeOut', delay: 0.4 }}
+            className="absolute -inset-8 rounded-full border border-emerald-400/20"
+          />
+          <div className="w-28 h-28 rounded-full bg-white/10 backdrop-blur-2xl border border-white/20 flex items-center justify-center shadow-2xl shadow-orange-500/10">
+            <motion.img 
+              src="/logo.png" 
+              alt="Logo" 
+              className="w-16 h-16 object-contain drop-shadow-2xl"
+              animate={{ rotate: [0, 5, -5, 0] }}
+              transition={{ duration: 4, repeat: Infinity, ease: 'easeInOut' }}
+            />
           </div>
         </motion.div>
 
-        {/* Steps + progress */}
-        <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.5 }} className="mt-10 w-full">
-          <div className="space-y-2.5 mb-6">
-            {steps.map((step, i) => (
-              <motion.div
-                key={i}
-                initial={{ opacity: 0, x: -16 }}
-                animate={{ opacity: i <= currentStep ? 1 : 0.22, x: 0 }}
-                transition={{ delay: 0.4 + i * 0.12 }}
-                className={`flex items-center gap-3 text-sm transition-all ${i === currentStep ? 'scale-[1.02]' : ''}`}
-              >
-                <div className={`w-6 h-6 rounded-full flex-shrink-0 flex items-center justify-center text-xs transition-all duration-400 ${
-                  i < currentStep ? 'bg-emerald-500 shadow-md shadow-emerald-500/40' :
-                  i === currentStep ? 'bg-orange-500 shadow-md shadow-orange-500/40 animate-pulse' :
-                  'bg-white/10 border border-white/20'
-                }`}>
-                  {i < currentStep ? <CheckCircle size={12} className="text-white" /> : <span className="text-white/60">{i + 1}</span>}
-                </div>
-                <span className={`font-medium ${
-                  i < currentStep ? 'text-emerald-300/70 line-through' :
-                  i === currentStep ? 'text-white' : 'text-white/25'
-                }`}>{step.label}</span>
-              </motion.div>
-            ))}
+        {/* Title */}
+        <motion.div 
+          initial={{ opacity: 0, y: 20 }} 
+          animate={{ opacity: 1, y: 0 }} 
+          transition={{ delay: 0.3, duration: 0.6 }}
+          className="mb-12"
+        >
+          <h1 className="text-3xl sm:text-4xl font-black text-white tracking-tight">
+            Mairie de <span className="bg-clip-text text-transparent bg-gradient-to-r from-orange-400 to-amber-300">Yopougon</span>
+          </h1>
+          <div className="flex items-center justify-center gap-3 mt-3">
+            <div className="h-px w-12 bg-gradient-to-r from-transparent to-orange-500/50" />
+            <p className="text-[10px] font-bold text-white/40 tracking-[0.2em] uppercase">
+              Portail RH Sécurisé
+            </p>
+            <div className="h-px w-12 bg-gradient-to-l from-transparent to-emerald-500/50" />
           </div>
+        </motion.div>
 
-          <div className="w-full h-1.5 bg-white/10 rounded-full overflow-hidden">
+        {/* Progress Section */}
+        <motion.div 
+          initial={{ opacity: 0 }} 
+          animate={{ opacity: 1 }} 
+          transition={{ delay: 0.5 }}
+          className="w-full max-w-xs"
+        >
+          {/* Progress bar */}
+          <div className="w-full h-1 bg-white/[0.06] rounded-full overflow-hidden mb-4">
             <motion.div
-              className="h-full rounded-full bg-gradient-to-r from-orange-500 via-white to-emerald-500"
+              className="h-full"
               initial={{ width: '0%' }}
               animate={{ width: `${progress}%` }}
               transition={{ duration: 0.5, ease: 'easeOut' }}
-            />
+            >
+              <div className="h-full w-full rounded-full bg-gradient-to-r from-orange-500 via-white/50 to-emerald-500" />
+            </motion.div>
           </div>
-          <div className="flex justify-between mt-1">
-            <span className="text-white/25 text-[10px] font-bold uppercase tracking-wider">Initialisation</span>
-            <span className="text-white/50 text-[10px] font-bold">{progress}%</span>
+          
+          {/* Status text and percentage */}
+          <div className="flex items-center justify-between">
+            <motion.p 
+              key={statusText}
+              initial={{ opacity: 0, y: 6 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.3 }}
+              className="text-xs font-semibold text-white/50"
+            >
+              {statusText}
+            </motion.p>
+            <span className="text-xs font-black text-white/30 tabular-nums">{progress}%</span>
           </div>
         </motion.div>
 
-        {/* Flag strip at bottom */}
-        <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.8 }}
-          className="absolute bottom-8 flex items-center gap-3">
-          <div className="flex gap-0.5 h-1 w-8 overflow-hidden rounded-full">
+        {/* Bottom flag strip */}
+        <motion.div 
+          initial={{ opacity: 0 }} 
+          animate={{ opacity: 1 }} 
+          transition={{ delay: 1 }}
+          className="absolute bottom-10 flex items-center gap-3"
+        >
+          <div className="flex h-1 w-8 rounded-full overflow-hidden">
             <div className="flex-1 bg-orange-500" />
             <div className="flex-1 bg-white" />
             <div className="flex-1 bg-emerald-500" />
           </div>
-          <span className="text-white/25 text-[10px] font-bold tracking-widest uppercase">République de Côte d'Ivoire</span>
-          <div className="flex gap-0.5 h-1 w-8 overflow-hidden rounded-full">
+          <span className="text-[9px] font-bold text-white/20 tracking-[0.15em] uppercase">
+            République de Côte d&apos;Ivoire
+          </span>
+          <div className="flex h-1 w-8 rounded-full overflow-hidden">
             <div className="flex-1 bg-emerald-500" />
             <div className="flex-1 bg-white" />
             <div className="flex-1 bg-orange-500" />
