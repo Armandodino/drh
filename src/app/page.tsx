@@ -1100,9 +1100,9 @@ export default function DRHApp() {
         }
         toast.success('Congé approuvé');
         generateArreteDeService(passwordAction.conge);
-      } else if (passwordAction.type === 'reject') {
+      } else if (passwordAction.type === 'cancel') {
         const response = await api.deleteConge(passwordAction.conge.id, confirmPassword);
-        if (response.message) {
+        if (response.message && response.message !== 'Congé supprimé avec succès') {
           toast.error(response.message);
           return;
         }
@@ -3048,7 +3048,7 @@ export default function DRHApp() {
                     }`} 
                     onClick={handleCongeAction}
                   >
-                    {passwordAction.type === 'confirm' ? 'Confirmer' : passwordAction.type === 'editAgent' ? 'Enregistrer' : passwordAction.type === 'deleteAgent' ? 'Supprimer' : passwordAction.type === 'reject' ? 'Confirmer' : 'Annuler'}
+                    {passwordAction.type === 'confirm' ? 'Confirmer' : passwordAction.type === 'editAgent' ? 'Enregistrer' : passwordAction.type === 'deleteAgent' ? 'Supprimer' : passwordAction.type === 'cancel' ? 'Confirmer l\'annulation' : 'Annuler'}
                   </Button>
                 </div>
               </CardContent>
