@@ -1,9 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { db } from '@/lib/db';
 import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
 
-const JWT_SECRET = process.env.JWT_SECRET || 'DRH_YOP_SECRET_2026';
+const JWT_SECRET = process.env.JWT_SECRET || 'DRH_YOP_SECURE_2026';
+const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL;
+const SUPABASE_SERVICE_KEY = process.env.SUPABASE_SERVICE_KEY;
 
 export async function POST(request: NextRequest) {
   try {
@@ -16,20 +17,47 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const user = await db.employe.findUnique({
-      where: { matricule: matricule.toLowerCase() },
-    });
+    if (!SUPABASE_URL || !SUPABASE_SERVICE_KEY) {
+      console.error('Missing Supabase configuration');
+      return NextResponse.json(
+        { message: 'Configuration serveur manquante' },
+        { status: 500 }
+      );
+    }
 
-    if (!user) {
+    // Fetch user from Supabase REST API
+    const response = await fetch(
+      `${SUPABASE_URL}/rest/v1/employes?matricule=eq.${matricule.toLowerCase()}&select=*`,
+      {
+        headers: {
+          'apikey': SUPABASE_SERVICE_KEY,
+          'Authorization': `Bearer ${SUPABASE_SERVICE_KEY}`,
+        },
+      }
+    );
+
+    if (!response.ok) {
+      console.error('Supabase error:', await response.text());
+      return NextResponse.json(
+        { message: 'Erreur de connexion a la base de donnees' },
+        { status: 500 }
+      );
+    }
+
+    const users = await response.json();
+
+    if (!users || users.length === 0) {
       return NextResponse.json(
         { message: 'Identifiant introuvable' },
         { status: 401 }
       );
     }
 
+    const user = users[0];
+
     if (!user.password) {
       return NextResponse.json(
-        { message: 'Compte non configuré' },
+        { message: 'Compte non configure. Contactez l\'administrateur.' },
         { status: 401 }
       );
     }
@@ -43,8 +71,8 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Vérifier les droits d'accès
-    if (user.role !== 'DEV' && user.role !== 'ADMIN_DRH' && user.role !== 'ADMIN') {
+    const allowedRoles = ['DEV', 'ADMIN_DRH', 'ADMIN', 'DIRECTEUR'];
+    if (!allowedRoles.includes(user.role)) {
       return NextResponse.json(
         { message: 'Droits insuffisants' },
         { status: 403 }
