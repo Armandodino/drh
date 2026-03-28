@@ -237,6 +237,18 @@ const api = {
     return res.json();
   },
 
+  deleteConge: async (id: number, password?: string) => {
+    const token = localStorage.getItem('drh_token');
+    const res = await fetch(`${API_BASE}/conges/${id}`, {
+      method: 'DELETE',
+      headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+      body: JSON.stringify({ password }),
+    });
+    return res.json();
+  },
+
+  getAgents: async () => {},
+
   verifyPassword: async (password: string) => {
     const token = localStorage.getItem('drh_token');
     const res = await fetch(`${API_BASE}/auth/verify-password`, {
@@ -697,28 +709,6 @@ const SplashScreen = ({ onComplete }: { onComplete: () => void }) => {
             <span className="text-xs font-black text-white/30 tabular-nums">{progress}%</span>
           </div>
         </motion.div>
-
-        {/* Bottom flag strip */}
-        <motion.div 
-          initial={{ opacity: 0 }} 
-          animate={{ opacity: 1 }} 
-          transition={{ delay: 1 }}
-          className="absolute bottom-10 flex items-center gap-3"
-        >
-          <div className="flex h-1 w-8 rounded-full overflow-hidden">
-            <div className="flex-1 bg-orange-500" />
-            <div className="flex-1 bg-white" />
-            <div className="flex-1 bg-emerald-500" />
-          </div>
-          <span className="text-[9px] font-bold text-white/20 tracking-[0.15em] uppercase">
-            République de Côte d&apos;Ivoire
-          </span>
-          <div className="flex h-1 w-8 rounded-full overflow-hidden">
-            <div className="flex-1 bg-emerald-500" />
-            <div className="flex-1 bg-white" />
-            <div className="flex-1 bg-orange-500" />
-          </div>
-        </motion.div>
       </div>
     </motion.div>
   );
@@ -1111,12 +1101,12 @@ export default function DRHApp() {
         toast.success('Congé approuvé');
         generateArreteDeService(passwordAction.conge);
       } else if (passwordAction.type === 'reject') {
-        const response = await api.updateCongeStatus(passwordAction.conge.id, 'Annulé', confirmPassword);
+        const response = await api.deleteConge(passwordAction.conge.id, confirmPassword);
         if (response.message) {
           toast.error(response.message);
           return;
         }
-        toast.success('Congé annulé');
+        toast.success('Demande de congé supprimée');
       } else if (passwordAction.type === 'deleteAgent') {
         const response = await api.deleteAgent(passwordAction.agentId, confirmPassword);
         if (response.message && response.message !== 'Agent supprimé avec succès') {
@@ -1368,12 +1358,11 @@ export default function DRHApp() {
             className="text-center text-white/50 text-xs font-medium mt-6 flex flex-col items-center justify-center gap-2"
           >
             <div className="w-8 h-1 flex rounded-full overflow-hidden opacity-50">
-              <div className="flex-1 bg-orange-500" />
+              <div className="flex-1 bg-orange-50" />
               <div className="flex-1 bg-white" />
               <div className="flex-1 bg-emerald-500" />
             </div>
             <span>© {new Date().getFullYear()} Mairie de Yopougon. Tous droits réservés.</span>
-            <span className="text-[10px] text-white/30">République de Côte d'Ivoire — Union · Discipline · Travail</span>
           </motion.div>
         </motion.div>
       </div>
@@ -3059,7 +3048,7 @@ export default function DRHApp() {
                     }`} 
                     onClick={handleCongeAction}
                   >
-                    {passwordAction.type === 'confirm' ? 'Confirmer' : passwordAction.type === 'editAgent' ? 'Enregistrer' : passwordAction.type === 'deleteAgent' ? 'Supprimer' : 'Annuler'}
+                    {passwordAction.type === 'confirm' ? 'Confirmer' : passwordAction.type === 'editAgent' ? 'Enregistrer' : passwordAction.type === 'deleteAgent' ? 'Supprimer' : passwordAction.type === 'reject' ? 'Confirmer' : 'Annuler'}
                   </Button>
                 </div>
               </CardContent>
