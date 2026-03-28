@@ -1782,13 +1782,13 @@ export default function DRHApp() {
                       
                       return (
                         <ResponsiveContainer width="100%" height={260}>
-                          <PieChart margin={{ top: 20, right: 30, bottom: 20, left: 30 }}>
+                          <PieChart margin={{ top: 20, right: 60, bottom: 20, left: 60 }}>
                             <Pie
                               data={statusData}
                               cx="50%"
                               cy="50%"
-                              innerRadius={60}
-                              outerRadius={85}
+                              innerRadius={45}
+                              outerRadius={70}
                               paddingAngle={6}
                               dataKey="value"
                               stroke="none"
@@ -1840,13 +1840,13 @@ export default function DRHApp() {
                       
                       return (
                         <ResponsiveContainer width="100%" height={260}>
-                          <PieChart margin={{ top: 20, right: 30, bottom: 20, left: 30 }}>
+                          <PieChart margin={{ top: 20, right: 60, bottom: 20, left: 60 }}>
                             <Pie
                               data={typeData}
                               cx="50%"
                               cy="50%"
-                              innerRadius={60}
-                              outerRadius={85}
+                              innerRadius={45}
+                              outerRadius={70}
                               paddingAngle={6}
                               dataKey="value"
                               stroke="none"
