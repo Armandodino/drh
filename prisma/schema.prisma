@@ -1,0 +1,98 @@
+// Prisma schema pour DRH Yopougon
+// Utilise SQLite pour le développement local
+// Pour la production (Supabase), changez le provider en "postgresql"
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model Employe {
+  id                  Int       @id @default(autoincrement())
+  matricule           String    @unique
+  nom                 String
+  prenoms             String
+  sexe                String    @default("M")
+  direction           String
+  fonction            String?
+  telephone           String?
+  email               String?
+  statut              String    @default("actif")
+  joursCongeAnnuel    Int       @default(30)
+  joursPrisHistorique Int       @default(0)
+  dateEmbauche        DateTime?
+  role                String    @default("AGENT")
+  password            String?
+  photoUrl            String?
+  createdAt           DateTime  @default(now())
+  updatedAt           DateTime  @updatedAt
+
+  conges              Conge[]
+  choixConges         ChoixConge[]
+  notifications       Notification[]
+
+  @@map("employes")
+}
+
+model Conge {
+  id              Int       @id @default(autoincrement())
+  employeId       Int
+  dateDepart      DateTime
+  dateRetour      DateTime
+  nombreJours     Int
+  type            String    @default("Annuel")
+  motif           String?
+  statut          String    @default("en_attente")
+  anneeConge      Int?
+  dateApprobation DateTime?
+  approuvePar     Int?
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+
+  employe         Employe   @relation(fields: [employeId], references: [id], onDelete: Cascade)
+
+  @@index([employeId])
+  @@map("conges")
+}
+
+model ChoixConge {
+  id                    Int       @id @default(autoincrement())
+  employeId             Int
+  dateDepartSouhaitee   DateTime
+  dateRetourSouhaitee   DateTime
+  nombreJours           Int       @default(30)
+  observations          String?
+  statut                String    @default("en_attente")
+  annee                 Int
+  dateValidation        DateTime?
+  validePar             Int?
+  createdAt             DateTime  @default(now())
+  updatedAt             DateTime  @updatedAt
+
+  employe               Employe   @relation(fields: [employeId], references: [id], onDelete: Cascade)
+
+  @@unique([employeId, annee])
+  @@map("choix_conges_annuels")
+}
+
+model Notification {
+  id               Int       @id @default(autoincrement())
+  type             String
+  titre            String
+  message          String
+  employeId        Int?
+  congeId          Int?
+  choixCongeId     Int?
+  actionRequise    Boolean   @default(false)
+  actionEffectuee  Boolean   @default(false)
+  estLue           Boolean   @default(false)
+  dateNotification DateTime  @default(now())
+
+  employe          Employe?  @relation(fields: [employeId], references: [id], onDelete: SetNull)
+
+  @@map("notifications_admin")
+}
