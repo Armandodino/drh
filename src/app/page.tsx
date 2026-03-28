@@ -218,6 +218,15 @@ const api = {
     return res.json();
   },
 
+  markAlertAsRead: async (id: number) => {
+    const token = localStorage.getItem('drh_token');
+    const res = await fetch(`${API_BASE}/conges/${id}/read-alert`, {
+      method: 'PUT',
+      headers: { 'Authorization': `Bearer ${token}` }
+    });
+    return res.json();
+  },
+
   updateCongeStatus: async (id: number, statut: string, password?: string) => {
     const token = localStorage.getItem('drh_token');
     const res = await fetch(`${API_BASE}/conges/${id}`, {
@@ -1482,7 +1491,7 @@ export default function DRHApp() {
             <nav className="space-y-1.5">
               {[
                 { id: 'dashboard', icon: Home, label: 'Tableau de bord' },
-                { id: 'notifications', icon: Bell, label: 'Notifications', badge: congesFinProche.length },
+                { id: 'notifications', icon: Bell, label: 'Notifications', badge: notifCount },
                 { id: 'employees', icon: Users, label: 'Employés' },
               ].map(item => (
                 <button
@@ -2124,14 +2133,30 @@ export default function DRHApp() {
                                 </div>
                               </div>
                             </div>
-                            <Button 
-                              onClick={() => generateNoteReprise(conge)} 
-                              className="bg-red-600 hover:bg-red-700 text-white shadow-lg shadow-red-500/20 transition-all hover:shadow-red-500/40 hover:-translate-y-0.5 rounded-xl h-12 px-6 font-bold w-full md:w-auto flex-shrink-0"
-                            >
-                              <FileText size={18} className="mr-2" /> 
-                              Note de Reprise
-                              <ArrowUpRight size={16} className="ml-2 opacity-50" />
-                            </Button>
+                            <div className="flex flex-col md:flex-row gap-3">
+                              {(currentUser?.role === 'ADMIN' || currentUser?.role === 'SUPER_ADMIN') && (
+                                <Button
+                                  variant="outline"
+                                  onClick={async () => {
+                                    await api.markAlertAsRead(conge.id);
+                                    fetchData();
+                                    toast.success('Notification marquée comme lue');
+                                  }}
+                                  className="border-slate-200 dark:border-slate-700 hover:bg-emerald-50 hover:text-emerald-600 hover:border-emerald-200 dark:hover:bg-emerald-900/20 dark:hover:text-emerald-400 transition-colors h-12 px-5 font-bold rounded-xl"
+                                >
+                                  <CheckCircle size={18} className="mr-2" />
+                                  Marquer lu
+                                </Button>
+                              )}
+                              <Button 
+                                onClick={() => generateNoteReprise(conge)} 
+                                className="bg-red-600 hover:bg-red-700 text-white shadow-lg shadow-red-500/20 transition-all hover:shadow-red-500/40 hover:-translate-y-0.5 rounded-xl h-12 px-6 font-bold w-full md:w-auto flex-shrink-0"
+                              >
+                                <FileText size={18} className="mr-2" /> 
+                                Note de Reprise
+                                <ArrowUpRight size={16} className="ml-2 opacity-50" />
+                              </Button>
+                            </div>
                           </div>
                         </div>
                       ))}

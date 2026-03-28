@@ -10,12 +10,13 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ message: 'Non autorisé' }, { status: 401 });
     }
 
-    // Récupérer les congés qui sont "approuve", "valid", "en_cours", "en cours"
+    // Récupérer les congés qui sont "approuve", "valid", "en_cours", "en cours" et dont l'alerte n'est pas lue
     const conges = await db.conge.findMany({
       where: {
         statut: {
           in: ['approuve', 'validé', 'valide', 'en_cours', 'en cours', 'cours']
-        }
+        },
+        alerteRetourLue: false
       },
       include: {
         employe: {
