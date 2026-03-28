@@ -56,7 +56,7 @@ import {
 // ============================================
 // CONFIGURATION
 // ============================================
-const API_BASE = process.env.NEXT_PUBLIC_API_URL || '';
+const API_BASE = process.env.NEXT_PUBLIC_API_URL || '/api';
 
 // Directions disponibles
 const DIRECTIONS = [
@@ -136,7 +136,7 @@ interface UserData {
 // ============================================
 const api = {
   login: async (matricule: string, password: string) => {
-    const res = await fetch(`${API_BASE}/login`, {
+    const res = await fetch(`${API_BASE}/auth/login`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ matricule, password }),
