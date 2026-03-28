@@ -246,9 +246,6 @@ const api = {
     });
     return res.json();
   },
-
-  getAgents: async () => {},
-
   verifyPassword: async (password: string) => {
     const token = localStorage.getItem('drh_token');
     const res = await fetch(`${API_BASE}/auth/verify-password`, {
