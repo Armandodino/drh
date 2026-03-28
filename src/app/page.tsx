@@ -926,8 +926,14 @@ export default function DRHApp() {
   const [showAgentModal, setShowAgentModal] = useState(false);
   const [showCongeModal, setShowCongeModal] = useState(false);
   const [showPasswordModal, setShowPasswordModal] = useState(false);
-  const [passwordAction, setPasswordAction] = useState<{ type: 'confirm' | 'cancel'; conge: Conge } | null>(null);
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const [passwordAction, setPasswordAction] = useState<any>(null);
   const [confirmPassword, setConfirmPassword] = useState('');
+  const [editingAgent, setEditingAgent] = useState<Employe | null>(null);
+  const [showEditAgentModal, setShowEditAgentModal] = useState(false);
+  const [editAgentForm, setEditAgentForm] = useState({
+    nom: '', prenoms: '', sexe: 'M', direction: '', fonction: '', telephone: '', email: '', dateEmbauche: ''
+  });
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const [auditLogs, setAuditLogs] = useState<any[]>([]);
 
@@ -1106,6 +1112,14 @@ export default function DRHApp() {
           return;
         }
         toast.success('Agent supprimé');
+      } else if (passwordAction.type === 'editAgent') {
+        const response = await api.updateAgent(passwordAction.agentId, passwordAction.editData);
+        if (response.message && response.message !== 'Agent mis à jour avec succès') {
+          toast.error(response.message);
+          return;
+        }
+        toast.success('Agent mis à jour avec succès');
+        setEditingAgent(null);
       }
       setShowPasswordModal(false);
       setPasswordAction(null);
@@ -2182,12 +2196,13 @@ export default function DRHApp() {
                             <th className="px-6 py-4 text-left text-[11px] font-black text-slate-400 uppercase tracking-widest">Contact</th>
                             <th className="px-6 py-4 text-center text-[11px] font-black text-slate-400 uppercase tracking-widest">Soldes Congés</th>
                             <th className="px-6 py-4 text-center text-[11px] font-black text-slate-400 uppercase tracking-widest">Statut</th>
+                            <th className="px-6 py-4 text-center text-[11px] font-black text-slate-400 uppercase tracking-widest">Actions</th>
                           </tr>
                         </thead>
                         <tbody className="divide-y divide-slate-100/80 dark:divide-slate-800/60 bg-white dark:bg-slate-900/30">
                           {filteredAgents.length === 0 ? (
                             <tr>
-                              <td colSpan={5} className="px-6 py-20 text-center text-slate-400">
+                              <td colSpan={6} className="px-6 py-20 text-center text-slate-400">
                                 <Search size={48} className="mx-auto mb-4 opacity-10 text-slate-500" />
                                 <span className="font-bold text-base text-slate-500">Aucun agent trouvé correspondant à votre recherche.</span>
                               </td>
@@ -2231,6 +2246,41 @@ export default function DRHApp() {
                                 <Badge className={`font-black tracking-widest text-[10px] uppercase py-1.5 px-4 rounded-xl border-0 ${agent.statut?.toLowerCase() === 'actif' ? 'bg-emerald-100 text-emerald-700 shadow-sm shadow-emerald-500/10 dark:bg-emerald-900/40 dark:text-emerald-400' : 'bg-slate-100 text-slate-500 dark:bg-slate-800 dark:text-slate-400'}`}>
                                   {agent.statut || 'Actif'}
                                 </Badge>
+                              </td>
+                              <td className="px-6 py-5 text-center align-middle">
+                                <div className="flex items-center justify-center gap-2">
+                                  <button
+                                    onClick={() => {
+                                      setEditingAgent(agent);
+                                      setEditAgentForm({
+                                        nom: agent.nom || '',
+                                        prenoms: agent.prenoms || '',
+                                        sexe: agent.sexe || 'M',
+                                        direction: agent.direction || '',
+                                        fonction: agent.fonction || '',
+                                        telephone: agent.telephone || '',
+                                        email: agent.email || '',
+                                        dateEmbauche: agent.dateEmbauche ? new Date(agent.dateEmbauche).toISOString().split('T')[0] : ''
+                                      });
+                                      setShowEditAgentModal(true);
+                                    }}
+                                    className="w-9 h-9 rounded-xl bg-blue-50 hover:bg-blue-100 dark:bg-blue-900/30 dark:hover:bg-blue-900/50 flex items-center justify-center text-blue-600 dark:text-blue-400 transition-all hover:scale-110 border border-blue-200/50 dark:border-blue-700/50"
+                                    title="Modifier"
+                                  >
+                                    <Settings size={16} />
+                                  </button>
+                                  <button
+                                    onClick={() => {
+                                      setPasswordAction({ type: 'deleteAgent', agentId: agent.id, agentName: `${agent.nom} ${agent.prenoms}` });
+                                      setConfirmPassword('');
+                                      setShowPasswordModal(true);
+                                    }}
+                                    className="w-9 h-9 rounded-xl bg-red-50 hover:bg-red-100 dark:bg-red-900/30 dark:hover:bg-red-900/50 flex items-center justify-center text-red-600 dark:text-red-400 transition-all hover:scale-110 border border-red-200/50 dark:border-red-700/50"
+                                    title="Supprimer"
+                                  >
+                                    <AlertTriangle size={16} />
+                                  </button>
+                                </div>
                               </td>
                             </tr>
                           ))}
@@ -2926,19 +2976,37 @@ export default function DRHApp() {
             className="w-full max-w-md"
           >
             <Card className="border border-white/20 dark:border-slate-700/50 bg-white/90 dark:bg-slate-900/90 backdrop-blur-xl shadow-2xl rounded-3xl overflow-hidden">
-              <CardHeader className="bg-slate-50/50 dark:bg-slate-800/50 border-b border-slate-100 dark:border-slate-800/50 px-8 py-6 flex flex-row items-center gap-4">
-                <div className={`w-12 h-12 rounded-2xl flex items-center justify-center shadow-inner ${passwordAction.type === 'confirm' ? 'bg-emerald-100 dark:bg-emerald-900/50' : 'bg-red-100 dark:bg-red-900/50'}`}>
+              <CardHeader className="bg-slate-50/50 dark:bg-slate-800/50 border-b border-slate-100 dark:border-slate-800/50 px-8 py-5 flex flex-row items-center gap-4">
+                <div className={`w-12 h-12 rounded-2xl flex items-center justify-center shadow-inner ${passwordAction.type === 'deleteAgent' ? 'bg-red-100 dark:bg-red-900/50' : passwordAction.type === 'confirm' ? 'bg-emerald-100 dark:bg-emerald-900/50' : 'bg-red-100 dark:bg-red-900/50'}`}>
                   {passwordAction.type === 'confirm' ? <CheckCircle size={24} className="text-emerald-600 dark:text-emerald-400" /> : <AlertTriangle size={24} className="text-red-600 dark:text-red-400" />}
                 </div>
                 <div>
-                  <CardTitle className="text-xl font-bold">{passwordAction.type === 'confirm' ? 'Validation' : 'Annulation'}</CardTitle>
-                  <p className="text-xs text-slate-500 font-medium">Sécurisation de l'action</p>
+                  <CardTitle className="text-xl font-bold">
+                    {passwordAction.type === 'confirm' ? 'Validation du Congé' : passwordAction.type === 'deleteAgent' ? 'Suppression d\'Agent' : passwordAction.type === 'editAgent' ? 'Modification d\'Agent' : 'Annulation du Congé'}
+                  </CardTitle>
+                  <p className="text-xs text-slate-500 font-medium">Sécurisation de l&apos;action</p>
                 </div>
               </CardHeader>
               <CardContent className="space-y-6 px-8 py-6">
                 <div className="bg-slate-50 dark:bg-slate-800/50 p-4 rounded-2xl border border-slate-100 dark:border-slate-800">
-                  <p className="text-sm font-bold text-slate-800 dark:text-white">{passwordAction.conge.nom} {passwordAction.conge.prenoms}</p>
-                  <p className="text-xs text-slate-500 mt-1">Durée : {passwordAction.conge.nombre_jours} jours</p>
+                  {passwordAction.type === 'deleteAgent' ? (
+                    <>
+                      <p className="text-sm font-bold text-red-600 dark:text-red-400">⚠ Suppression définitive</p>
+                      <p className="text-sm font-bold text-slate-800 dark:text-white mt-1">{passwordAction.agentName}</p>
+                      <p className="text-xs text-slate-500 mt-1">Cette action est irréversible.</p>
+                    </>
+                  ) : passwordAction.type === 'editAgent' ? (
+                    <>
+                      <p className="text-sm font-bold text-blue-600 dark:text-blue-400">✏ Modification du profil</p>
+                      <p className="text-sm font-bold text-slate-800 dark:text-white mt-1">{passwordAction.agentName}</p>
+                      <p className="text-xs text-slate-500 mt-1">Les données seront mises à jour.</p>
+                    </>
+                  ) : (
+                    <>
+                      <p className="text-sm font-bold text-slate-800 dark:text-white">{passwordAction.conge?.nom} {passwordAction.conge?.prenoms}</p>
+                      <p className="text-xs text-slate-500 mt-1">Durée : {passwordAction.conge?.nombre_jours} jours</p>
+                    </>
+                  )}
                 </div>
                 
                 <div className="space-y-2">
@@ -2955,11 +3023,94 @@ export default function DRHApp() {
 
                 <div className="flex justify-end gap-3 pt-6 border-t border-slate-100 dark:border-slate-800/50">
                   <Button variant="outline" className="rounded-xl px-6" onClick={() => { setShowPasswordModal(false); setPasswordAction(null); }}>Annuler</Button>
-                  <Button className={`rounded-xl px-6 font-bold text-white shadow-lg ${passwordAction.type === 'confirm' ? 'bg-orange-600 hover:bg-orange-500 shadow-emerald-500/20' : 'bg-red-600 hover:bg-red-500 shadow-red-500/20'}`} onClick={handleCongeAction}>
-                    {passwordAction.type === 'confirm' ? 'Confirmer' : 'Annuler'}
+                  <Button 
+                    className={`rounded-xl px-6 font-bold text-white shadow-lg ${
+                      passwordAction.type === 'confirm' ? 'bg-orange-600 hover:bg-orange-500 shadow-emerald-500/20' 
+                      : passwordAction.type === 'editAgent' ? 'bg-blue-600 hover:bg-blue-500 shadow-blue-500/20' 
+                      : 'bg-red-600 hover:bg-red-500 shadow-red-500/20'
+                    }`} 
+                    onClick={handleCongeAction}
+                  >
+                    {passwordAction.type === 'confirm' ? 'Confirmer' : passwordAction.type === 'editAgent' ? 'Enregistrer' : passwordAction.type === 'deleteAgent' ? 'Supprimer' : 'Annuler'}
                   </Button>
                 </div>
               </CardContent>
+            </Card>
+          </motion.div>
+        </div>
+      )}
+
+      {/* Edit Agent Modal */}
+      {showEditAgentModal && editingAgent && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-md">
+          <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} className="w-full max-w-2xl">
+            <Card className="border border-white/20 dark:border-slate-700/50 bg-white/90 dark:bg-slate-900/90 backdrop-blur-xl shadow-2xl rounded-3xl overflow-hidden">
+              <CardHeader className="bg-gradient-to-r from-blue-500 via-white to-emerald-600 px-8 py-5">
+                <CardTitle className="text-xl font-bold text-white flex items-center gap-2">
+                  <Settings size={20} />
+                  Modifier l&apos;Agent : {editingAgent.nom} {editingAgent.prenoms}
+                </CardTitle>
+                <p className="text-blue-100 text-sm mt-1">Matricule : {editingAgent.matricule}</p>
+              </CardHeader>
+              <CardContent className="p-6 space-y-5 max-h-[60vh] overflow-y-auto">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
+                    <Label className="text-xs font-bold text-slate-500 uppercase mb-1.5">Nom *</Label>
+                    <Input value={editAgentForm.nom} onChange={e => setEditAgentForm({ ...editAgentForm, nom: e.target.value.toUpperCase() })} />
+                  </div>
+                  <div>
+                    <Label className="text-xs font-bold text-slate-500 uppercase mb-1.5">Prénoms *</Label>
+                    <Input value={editAgentForm.prenoms} onChange={e => setEditAgentForm({ ...editAgentForm, prenoms: e.target.value })} />
+                  </div>
+                </div>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
+                    <Label className="text-xs font-bold text-slate-500 uppercase mb-1.5">Genre</Label>
+                    <select value={editAgentForm.sexe} onChange={e => setEditAgentForm({ ...editAgentForm, sexe: e.target.value })} className="w-full border rounded-lg px-4 py-2 bg-white dark:bg-slate-950 dark:border-slate-700">
+                      <option value="M">Masculin</option>
+                      <option value="F">Féminin</option>
+                    </select>
+                  </div>
+                  <div>
+                    <Label className="text-xs font-bold text-slate-500 uppercase mb-1.5">Date d&apos;embauche</Label>
+                    <Input type="date" value={editAgentForm.dateEmbauche} onChange={e => setEditAgentForm({ ...editAgentForm, dateEmbauche: e.target.value })} />
+                  </div>
+                </div>
+                <div>
+                  <Label className="text-xs font-bold text-slate-500 uppercase mb-1.5">Direction *</Label>
+                  <select value={editAgentForm.direction} onChange={e => setEditAgentForm({ ...editAgentForm, direction: e.target.value })} className="w-full border rounded-lg px-4 py-2 bg-white dark:bg-slate-950 dark:border-slate-700">
+                    {DIRECTIONS.map(dir => <option key={dir} value={dir}>{dir}</option>)}
+                  </select>
+                </div>
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                  <div>
+                    <Label className="text-xs font-bold text-slate-500 uppercase mb-1.5">Fonction</Label>
+                    <Input value={editAgentForm.fonction} onChange={e => setEditAgentForm({ ...editAgentForm, fonction: e.target.value })} />
+                  </div>
+                  <div>
+                    <Label className="text-xs font-bold text-slate-500 uppercase mb-1.5">Téléphone</Label>
+                    <Input value={editAgentForm.telephone} onChange={e => setEditAgentForm({ ...editAgentForm, telephone: e.target.value })} />
+                  </div>
+                  <div>
+                    <Label className="text-xs font-bold text-slate-500 uppercase mb-1.5">Email</Label>
+                    <Input type="email" value={editAgentForm.email} onChange={e => setEditAgentForm({ ...editAgentForm, email: e.target.value })} />
+                  </div>
+                </div>
+              </CardContent>
+              <div className="border-t px-6 py-4 bg-slate-50 dark:bg-slate-800/50 flex justify-between">
+                <Button variant="outline" className="rounded-xl" onClick={() => { setShowEditAgentModal(false); setEditingAgent(null); }}>Annuler</Button>
+                <Button 
+                  className="bg-blue-600 hover:bg-blue-500 text-white font-bold rounded-xl px-6 shadow-lg shadow-blue-500/20"
+                  onClick={() => {
+                    setShowEditAgentModal(false);
+                    setPasswordAction({ type: 'editAgent', agentId: editingAgent.id, agentName: `${editAgentForm.nom} ${editAgentForm.prenoms}`, editData: editAgentForm });
+                    setConfirmPassword('');
+                    setShowPasswordModal(true);
+                  }}
+                >
+                  Enregistrer les modifications
+                </Button>
+              </div>
             </Card>
           </motion.div>
         </div>
@@ -2969,7 +3120,7 @@ export default function DRHApp() {
       <footer className="bg-white dark:bg-slate-900 border-t border-slate-200 dark:border-slate-800 px-6 py-4 mt-auto">
         <div className="flex flex-col md:flex-row justify-between items-center gap-4">
           <p className="text-sm text-slate-500">© {new Date().getFullYear()} Commune de Yopougon - Direction des Ressources Humaines</p>
-          <p className="text-xs text-slate-400">Version 1.0.0</p>
+          <p className="text-xs text-slate-400">Version 2.0.0</p>
         </div>
       </footer>
     </div>
