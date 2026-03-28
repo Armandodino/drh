@@ -1,12 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { PrismaClient } from '@prisma/client';
+import { db } from '@/lib/db';
 import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
 
 const JWT_SECRET = process.env.JWT_SECRET || 'DRH_YOP_SECRET_2026';
 
 export async function POST(request: NextRequest) {
-  const prisma = new PrismaClient();
   try {
     const { matricule, password } = await request.json();
 
@@ -17,7 +16,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const user = await prisma.employe.findUnique({
+    const user = await db.employe.findUnique({
       where: { matricule: matricule.toLowerCase() },
     });
 
@@ -80,7 +79,5 @@ export async function POST(request: NextRequest) {
       { message: 'Erreur serveur', detail: String(error).substring(0, 200) },
       { status: 500 }
     );
-  } finally {
-    await prisma.$disconnect();
   }
 }

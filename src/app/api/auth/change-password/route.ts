@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { PrismaClient } from '@prisma/client';
+import { db } from '@/lib/db';
 import bcrypt from 'bcryptjs';
 import { getUserFromRequest } from '@/lib/auth';
 
@@ -9,7 +9,7 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ message: 'Non autorisé' }, { status: 401 });
   }
 
-  const prisma = new PrismaClient();
+
 
   try {
     const { targetMatricule, currentPassword, newPassword } = await request.json();
@@ -25,7 +25,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ message: 'Droits insuffisants pour modifier un autre compte' }, { status: 403 });
     }
 
-    const targetUser = await prisma.employe.findUnique({
+    const targetUser = await db.employe.findUnique({
       where: { matricule: matriculeToUpdate }
     });
 
@@ -46,7 +46,7 @@ export async function POST(request: NextRequest) {
 
     const hashedNewPassword = await bcrypt.hash(newPassword, 10);
     
-    await prisma.employe.update({
+    await db.employe.update({
       where: { matricule: matriculeToUpdate },
       data: { password: hashedNewPassword }
     });
@@ -56,7 +56,5 @@ export async function POST(request: NextRequest) {
   } catch (error) {
     console.error('ERREUR CHANGE PASSWORD:', error);
     return NextResponse.json({ message: 'Erreur serveur' }, { status: 500 });
-  } finally {
-    await prisma.$disconnect();
   }
 }
