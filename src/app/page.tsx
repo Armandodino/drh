@@ -860,32 +860,41 @@ export default function DRHApp() {
       a.direction?.toLowerCase().includes(search.toLowerCase()))
   );
 
-  // LOGIN PAGE - Simple & Clean Design
+  // LOGIN PAGE - Background + Form Only
   if (!isLoggedIn) {
     return (
-      <div className="min-h-screen relative overflow-hidden bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900">
-        {/* Main Content - Centered */}
+      <div className="min-h-screen relative overflow-hidden">
+        {/* Background Image */}
+        <img 
+          src="/mairie_yopougon.jpg" 
+          alt="Mairie de Yopougon" 
+          className="absolute inset-0 w-full h-full object-cover"
+        />
+        {/* Dark Overlay */}
+        <div className="absolute inset-0 bg-black/60" />
+
+        {/* Form - Centered */}
         <div className="relative z-10 min-h-screen flex items-center justify-center p-6">
           <div className="w-full max-w-md">
             {/* Logo */}
-            <div className="text-center mb-10">
-              <div className="mx-auto mb-6 w-20 h-20 bg-gradient-to-br from-orange-500 via-white to-emerald-500 rounded-2xl flex items-center justify-center shadow-2xl">
-                <Building2 className="w-10 h-10 text-slate-900" />
+            <div className="text-center mb-8">
+              <div className="mx-auto mb-5 w-16 h-16 bg-gradient-to-br from-orange-500 via-white to-emerald-500 rounded-xl flex items-center justify-center shadow-xl">
+                <Building2 className="w-8 h-8 text-slate-900" />
               </div>
-              <h1 className="text-4xl font-black tracking-tight mb-2">
+              <h1 className="text-3xl font-bold tracking-tight mb-1">
                 <span className="text-white">DRH</span>
                 <span className="text-emerald-400"> Yopougon</span>
               </h1>
-              <p className="text-white/50 text-sm">Direction des Ressources Humaines</p>
+              <p className="text-white/60 text-sm">Direction des Ressources Humaines</p>
             </div>
 
-            {/* Form Card */}
-            <div className="bg-white/5 border border-white/10 rounded-3xl p-8 shadow-2xl">
-              <h2 className="text-2xl font-bold text-white text-center mb-8">
+            {/* Form Card - Solid, no glass */}
+            <div className="bg-slate-900 rounded-2xl p-8 shadow-2xl">
+              <h2 className="text-xl font-semibold text-white text-center mb-6">
                 Connexion
               </h2>
 
-              <form onSubmit={handleLogin} className="space-y-5">
+              <form onSubmit={handleLogin} className="space-y-4">
                 {/* Matricule */}
                 <div>
                   <label className="block text-sm font-medium text-white/70 mb-2">
@@ -896,7 +905,7 @@ export default function DRHApp() {
                     value={matricule}
                     onChange={e => setMatricule(e.target.value)}
                     placeholder="Ex: drh001"
-                    className="w-full h-14 px-5 bg-white/10 border border-white/20 rounded-xl text-white placeholder-white/40 focus:bg-white/15 focus:border-emerald-500/50 focus:outline-none focus:ring-2 focus:ring-emerald-500/20 transition-all"
+                    className="w-full h-12 px-4 bg-slate-800 border border-slate-700 rounded-lg text-white placeholder-white/40 focus:border-emerald-500 focus:outline-none transition-colors"
                     required
                   />
                 </div>
@@ -912,7 +921,7 @@ export default function DRHApp() {
                       value={password}
                       onChange={e => setPassword(e.target.value)}
                       placeholder="••••••••"
-                      className="w-full h-14 px-5 pr-12 bg-white/10 border border-white/20 rounded-xl text-white placeholder-white/40 focus:bg-white/15 focus:border-emerald-500/50 focus:outline-none focus:ring-2 focus:ring-emerald-500/20 transition-all"
+                      className="w-full h-12 px-4 pr-12 bg-slate-800 border border-slate-700 rounded-lg text-white placeholder-white/40 focus:border-emerald-500 focus:outline-none transition-colors"
                       required
                     />
                     <button
@@ -920,15 +929,15 @@ export default function DRHApp() {
                       onClick={() => setShowPassword(!showPassword)}
                       className="absolute right-4 top-1/2 -translate-y-1/2 text-white/40 hover:text-white/70 transition-colors"
                     >
-                      {showPassword ? <EyeOff size={20} /> : <Eye size={20} />}
+                      {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
                     </button>
                   </div>
                 </div>
 
                 {/* Error */}
                 {loginError && (
-                  <div className="bg-red-500/20 border border-red-500/30 rounded-xl p-4 flex items-center gap-3">
-                    <AlertTriangle size={18} className="text-red-400 flex-shrink-0" />
+                  <div className="bg-red-500/20 border border-red-500/30 rounded-lg p-3 flex items-center gap-2">
+                    <AlertTriangle size={16} className="text-red-400 flex-shrink-0" />
                     <p className="text-red-300 text-sm">{loginError}</p>
                   </div>
                 )}
@@ -936,24 +945,12 @@ export default function DRHApp() {
                 {/* Submit Button */}
                 <button
                   type="submit"
-                  className="w-full h-14 bg-gradient-to-r from-orange-500 to-emerald-500 hover:from-orange-600 hover:to-emerald-600 text-white text-lg font-semibold rounded-xl shadow-lg shadow-emerald-500/25 hover:shadow-emerald-500/40 transition-all duration-300 hover:-translate-y-0.5"
+                  className="w-full h-12 bg-gradient-to-r from-orange-500 to-emerald-500 hover:from-orange-600 hover:to-emerald-600 text-white font-semibold rounded-lg transition-all"
                 >
                   Se connecter
                 </button>
               </form>
-
-              <p className="text-center text-white/30 text-xs mt-6">
-                Accès restreint au personnel autorisé
-              </p>
             </div>
-
-            {/* Footer */}
-            <p className="text-center text-white/30 text-xs mt-8 flex items-center justify-center gap-2">
-              <span className="w-2 h-2 rounded-full bg-orange-500" />
-              <span className="w-2 h-2 rounded-full bg-white" />
-              <span className="w-2 h-2 rounded-full bg-emerald-500" />
-              <span className="ml-1">Côte d'Ivoire</span>
-            </p>
           </div>
         </div>
       </div>
