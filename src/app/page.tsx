@@ -760,7 +760,7 @@ const AgentForm = ({ isOpen, onClose, onSuccess, currentUserRole }: { isOpen: bo
       setFormData({
         matricule: '', nom: '', prenoms: '', sexe: 'M',
         direction: DIRECTIONS[0], fonction: '', telephone: '', email: '',
-        date_embauche: '', jours_pris_historique: 0
+        date_embauche: '', jours_pris_historique: 0, role: 'AGENT'
       });
       setStep(1);
     } catch {
