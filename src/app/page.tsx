@@ -2071,9 +2071,62 @@ export default function DRHApp() {
               <div className="flex flex-col sm:flex-row sm:justify-between sm:items-end gap-4">
                 <div>
                   <h2 className="text-3xl font-black text-slate-800 dark:text-white tracking-tight">Centre de Notifications</h2>
-                  <p className="text-slate-500 font-medium mt-1">Gérez les alertes et les retours de congés imminents</p>
+                  <p className="text-slate-500 font-medium mt-1">Gérez les demandes en attente et les retours imminents</p>
                 </div>
               </div>
+
+              {/* Demandes en Attente */}
+              <Card className="relative overflow-hidden border-0 shadow-lg shadow-slate-200/50 dark:shadow-none bg-white dark:bg-slate-900 group">
+                <div className="absolute top-0 right-0 w-32 h-32 bg-orange-500/5 rounded-full blur-3xl -mr-16 -mt-16 pointer-events-none" />
+                <CardHeader className="bg-slate-50/80 dark:bg-slate-900/80 border-b border-slate-100 dark:border-slate-800/80 backdrop-blur-md px-6 py-5 relative z-10 flex flex-row items-center justify-between">
+                  <CardTitle className="text-lg font-black text-slate-800 dark:text-slate-100 flex items-center gap-3">
+                    <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-orange-100 to-orange-50 dark:from-orange-900/40 dark:to-orange-800/20 flex items-center justify-center shadow-inner border border-orange-200/50 dark:border-orange-700/50">
+                      <Clock className="w-5 h-5 text-orange-600 dark:text-orange-400" />
+                    </div>
+                    Nouvelles demandes de congés ({conges.filter(c => c.statut?.toLowerCase().includes('attente')).length})
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="p-0 relative z-10">
+                  {conges.filter(c => c.statut?.toLowerCase().includes('attente')).length === 0 ? (
+                    <div className="flex flex-col items-center justify-center py-16 text-slate-400">
+                      <div className="w-16 h-16 rounded-full bg-slate-50 dark:bg-slate-800/50 flex items-center justify-center mb-4 shadow-inner border border-slate-100 dark:border-slate-800">
+                        <CheckCircle size={32} className="text-emerald-500" />
+                      </div>
+                      <p className="font-bold text-slate-500 text-lg">Aucune demande en attente</p>
+                    </div>
+                  ) : (
+                    <div className="divide-y divide-slate-100/80 dark:divide-slate-800/60 w-full">
+                      {conges.filter(c => c.statut?.toLowerCase().includes('attente')).map((conge) => (
+                        <div key={conge.id} className="p-6 bg-white hover:bg-slate-50 dark:bg-slate-900 dark:hover:bg-slate-800/40 transition-colors group relative overflow-hidden">
+                          <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 pl-4 md:pl-0">
+                            <div className="flex items-center gap-5">
+                              <div className="w-14 h-14 rounded-2xl flex items-center justify-center shadow-inner border bg-gradient-to-br from-orange-100 to-orange-50 border-orange-200/50 text-orange-600 dark:from-orange-900/40 dark:to-orange-800/20 dark:border-orange-700/50 dark:text-orange-400">
+                                <FileText size={28} />
+                              </div>
+                              <div>
+                                <h3 className="font-black text-lg text-slate-900 dark:text-white group-hover:text-orange-600 dark:group-hover:text-orange-400 transition-colors">{conge.nom} {conge.prenoms}</h3>
+                                <div className="flex flex-wrap items-center gap-3 mt-1.5">
+                                  <span className="text-xs font-black uppercase tracking-widest text-slate-400 bg-slate-100 dark:bg-slate-800 px-2 py-0.5 rounded">{conge.type || 'Congé'}</span>
+                                  <span className="text-sm font-semibold text-slate-500">{conge.nombre_jours} jours (Départ: {new Date(conge.date_depart).toLocaleDateString()})</span>
+                                </div>
+                              </div>
+                            </div>
+                            <div className="flex flex-col md:flex-row gap-3">
+                              <Button
+                                onClick={() => setActiveView('leaves')}
+                                className="bg-orange-600 hover:bg-orange-700 text-white shadow-lg shadow-orange-500/20 transition-all hover:-translate-y-0.5 rounded-xl h-12 px-6 font-bold flex-shrink-0"
+                              >
+                                Traiter
+                                <ArrowUpRight size={16} className="ml-2 opacity-50" />
+                              </Button>
+                            </div>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
               <Card className="relative overflow-hidden border-0 shadow-lg shadow-slate-200/50 dark:shadow-none bg-white dark:bg-slate-900 group">
                 <div className="absolute top-0 right-0 w-32 h-32 bg-red-500/5 rounded-full blur-3xl -mr-16 -mt-16 pointer-events-none" />
                 <CardHeader className="bg-slate-50/80 dark:bg-slate-900/80 border-b border-slate-100 dark:border-slate-800/80 backdrop-blur-md px-6 py-5 relative z-10 flex flex-row items-center justify-between">
