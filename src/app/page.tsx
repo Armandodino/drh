@@ -1014,10 +1014,10 @@ export default function DRHApp() {
            toast.success(`Bienvenue, ${data.user.nom}`);
         }
       } else {
-        setLoginError(data.message || 'Identifiants incorrects');
+        setLoginError(data.detail ? `${data.message} : ${data.detail}` : data.message || 'Identifiants incorrects');
       }
-    } catch {
-      setLoginError('Erreur de connexion');
+    } catch (error: any) {
+      setLoginError(error.message || 'Erreur de connexion réseau');
     } finally {
       setIsSubmitting(false);
     }
