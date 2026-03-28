@@ -1,0 +1,25 @@
+ERROR CATCH: PrismaClientInitializationError: 
+Invalid `db.employe.findUnique()` invocation in
+C:\Users\LENOVO\Documents\projets\drh\test_login.js:8:35
+
+  5 async function test() {
+  6   const db = new PrismaClient();
+  7   try {
+→ 8     const user = await db.employe.findUnique(
+error: Environment variable not found: DATABASE_URL.
+  -->  schema.prisma:11
+   | 
+10 |   provider = "postgresql"
+11 |   url      = env("DATABASE_URL")
+   | 
+
+Validation Error Count: 1
+    at ei.handleRequestError (C:\Users\LENOVO\Documents\projets\drh\node_modules\@prisma\client\runtime\library.js:121:7568)
+    at ei.handleAndLogRequestError (C:\Users\LENOVO\Documents\projets\drh\node_modules\@prisma\client\runtime\library.js:121:6593)
+    at ei.request (C:\Users\LENOVO\Documents\projets\drh\node_modules\@prisma\client\runtime\library.js:121:6300)
+    at async a (C:\Users\LENOVO\Documents\projets\drh\node_modules\@prisma\client\runtime\library.js:130:9551)
+    at async test (C:\Users\LENOVO\Documents\projets\drh\test_login.js:8:18) {
+  clientVersion: '6.19.2',
+  errorCode: undefined,
+  retryable: undefined
+}
