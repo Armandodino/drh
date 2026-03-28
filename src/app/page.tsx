@@ -866,26 +866,26 @@ export default function DRHApp() {
       <div className="min-h-screen relative overflow-hidden">
         {/* Background Image */}
         <img 
-          src="/mairie_yopougon.jpg" 
-          alt="Mairie de Yopougon" 
+          src="/login-bg.png" 
+          alt="Background" 
           className="absolute inset-0 w-full h-full object-cover"
         />
         {/* Dark Overlay */}
-        <div className="absolute inset-0 bg-black/60" />
+        <div className="absolute inset-0 bg-black/50" />
 
         {/* Form - Centered */}
         <div className="relative z-10 min-h-screen flex items-center justify-center p-6">
           <div className="w-full max-w-md">
             {/* Logo */}
             <div className="text-center mb-8">
-              <div className="mx-auto mb-5 w-16 h-16 bg-gradient-to-br from-orange-500 via-white to-emerald-500 rounded-xl flex items-center justify-center shadow-xl">
-                <Building2 className="w-8 h-8 text-slate-900" />
+              <div className="mx-auto mb-5 w-20 h-20 rounded-xl overflow-hidden shadow-xl">
+                <img src="/assets/logo_yopougon.png" alt="Logo" className="w-full h-full object-contain" />
               </div>
               <h1 className="text-3xl font-bold tracking-tight mb-1">
                 <span className="text-white">DRH</span>
                 <span className="text-emerald-400"> Yopougon</span>
               </h1>
-              <p className="text-white/60 text-sm">Direction des Ressources Humaines</p>
+              <p className="text-white/70 text-sm">Direction des Ressources Humaines</p>
             </div>
 
             {/* Form Card - Solid, no glass */}
